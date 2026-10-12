@@ -2,17 +2,25 @@ use slint::{ComponentHandle, winit_030::WinitWindowAccessor};
 use std::time::Duration;
 
 /// Wait for the native window and its DPI-adjusted size before positioning.
-pub fn center_when_ready<T: ComponentHandle + 'static>(weak: slint::Weak<T>) {
+pub fn center_when_ready<T: ComponentHandle + 'static>(
+    weak: slint::Weak<T>,
+    ready: impl FnOnce(&T) + 'static,
+) {
     slint::Timer::single_shot(Duration::from_millis(16), move || {
         if let Some(ui) = weak.upgrade() {
+            if !ui.window().is_visible() {
+                return;
+            }
             if !center_window(ui.window()) {
-                center_when_ready(weak);
+                center_when_ready(weak, ready);
+            } else {
+                ready(&ui);
             }
         }
     });
 }
 
-fn center_window(window: &slint::Window) -> bool {
+pub fn center_window(window: &slint::Window) -> bool {
     let position = window
         .with_winit_window(|native| {
             let monitor = native

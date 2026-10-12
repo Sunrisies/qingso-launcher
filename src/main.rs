@@ -1,30 +1,49 @@
-// Prevent console window in addition to Slint window in Windows release builds when, e.g., starting the app via file manager. Ignored on other platforms.
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+// A background launcher must not create a separate Windows console window.
+#![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
 
 use std::error::Error;
+use std::{cell::RefCell, rc::Rc};
 
+mod config;
+mod hotkeys;
+mod instance;
+mod launcher;
+mod settings;
 mod window_placement;
 
 slint::include_modules!();
 
-fn main() -> Result<(), Box<dyn Error>> {
-    slint::BackendSelector::new()
-        .backend_name("winit".into())
-        .select()?;
+fn main() {
+    if let Err(error) = run() {
+        let message = format!(
+            "启动失败：{error}\n\n如果快捷键被占用，请关闭其他启动器，或通过 FLOW_HOTKEY 指定其他快捷键。"
+        );
+        eprintln!("{message}");
+        if let Ok(dialog) = StartupErrorWindow::new() {
+            dialog.set_message(message.into());
+            let _ = dialog.run();
+        }
+        std::process::exit(1);
+    }
+}
+
+fn run() -> Result<(), Box<dyn Error>> {
+    let Some(instance) = instance::acquire()? else {
+        return Ok(());
+    };
+    launcher::configure_backend()?;
     let ui = AppWindow::new()?;
 
     ui.set_is_macos(cfg!(target_os = "macos"));
-    let weak = ui.as_weak();
-    ui.on_close_requested(move || {
-        if let Some(ui) = weak.upgrade() {
-            let _ = ui.hide();
-        }
-    });
-
-    // Wait for the native window rather than guessing when initialization ends.
-    window_placement::center_when_ready(ui.as_weak());
-
-    ui.run()?;
+    launcher::bind_window(&ui);
+    let registration = Rc::new(RefCell::new(hotkeys::register(&ui)?));
+    eprintln!("Launcher shortcut: {}", registration.borrow().shortcut);
+    let preferences = settings::create(&ui, registration.clone())?;
+    let tray = LauncherTray::new()?;
+    settings::bind_tray(&tray, &ui, &preferences);
+    instance.listen(ui.as_weak())?;
+    launcher::show(&ui)?;
+    slint::run_event_loop_until_quit()?;
 
     Ok(())
 }

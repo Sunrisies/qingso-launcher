@@ -6,6 +6,9 @@ edition = "2024"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+global-hotkey = "0.8.0"
+interprocess = "2.4.5"
+single-instance = "0.3.3"
 slint = { version = "1.18.1", features = ["unstable-winit-030"] }
 
 [build-dependencies]

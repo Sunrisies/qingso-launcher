@@ -19,7 +19,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         ui.set_results_scroll_y(-162.0);
     }
     ui.show()?;
-    window_placement::center_when_ready(ui.as_weak());
+    window_placement::center_when_ready(ui.as_weak(), |_| {});
     let weak = ui.as_weak();
     slint::Timer::single_shot(Duration::from_millis(500), move || {
         let result = (|| -> Result<(), Box<dyn Error>> {
