@@ -1,7 +1,8 @@
 import { Theme } from "theme.slint";
-// Static design preview. Sample results do not perform searches or launch apps.
+import { RecommendationEntry } from "settings-window.slint";
 import { ScrollView, Palette } from "std-widgets.slint";
-export { SettingsWindow, LauncherTray, SearchTagEntry } from "settings-window.slint";
+export { SettingsWindow, LauncherTray, SearchTagEntry, RecommendationEntry } from "settings-window.slint";
+export struct BrowserBookmarkEntry { title: string, url: string, source: string }
 
 export component StartupErrorWindow inherits Window {
     title: "轻搜 · 启动失败";
@@ -89,7 +90,14 @@ export component AppWindow inherits Window {
     in-out property <string> query-text: "";
     in-out property <length> results-scroll-y <=> results-scroll.content-y;
     in-out property <int> selected-index: 0;
-    in property <int> result-count: root.web-search-active ? 1 : 6;
+    in property <[RecommendationEntry]> recommendations;
+    in property <[BrowserBookmarkEntry]> browser-bookmarks;
+    in-out property <bool> bookmark-search-active: false;
+    callback bookmark-query(string);
+    callback open-bookmark(int);
+    in property <int> result-count: root.bookmark-search-active ? root.browser-bookmarks.length : root.web-search-active ? 1 : root.recommendations.length;
+    callback recommendation-query(string);
+    callback open-recommendation(int);
     in-out property <bool> web-search-active: false;
     in-out property <string> web-search-title;
     in-out property <string> web-search-description;
@@ -160,7 +168,7 @@ export component AppWindow inherits Window {
         Text {
             x: 590px; y: 96px; width: 103px; height: 27px;
             visible: root.query-hint == "";
-            text: "推荐 · 6 项"; color: Theme.muted; font-size: 11px;
+            text: "推荐 · " + root.recommendations.length + " 项"; color: Theme.muted; font-size: 11px;
             horizontal-alignment: right; vertical-alignment: center;
         }
         results-scroll := ScrollView {
@@ -170,52 +178,30 @@ export component AppWindow inherits Window {
             vertical-scrollbar-policy: as-needed;
             content-height: result-layout.height;
             content-width: self.visible-width;
-            result-layout := VerticalLayout {
-            width: 680px; height: self.preferred-height; spacing: 0px;
-            ResultRow {
-                icon: @image-url("icons/code.svg"); icon-background: #e7f4ff;
-                title: "Visual Studio Code"; subtitle: "代码编辑器 · 开始下一段创作";
-                kind: "应用"; selected: root.selected-index == 0;
-                choose => { root.selected-index = 0; input.focus(); }
+            result-layout := Rectangle {
+            width: 680px; height: root.result-count * 54px; background: transparent;
+            for item[index] in root.recommendations : ResultRow {
+                visible: !root.bookmark-search-active; y: index * 54px;
+                icon: item.kind == 1 ? @image-url("icons/folder.svg") : item.kind == 2 ? @image-url("icons/globe.svg") : @image-url("icons/code.svg");
+                icon-background: item.kind == 1 ? #fff4dc : #e9f2fd;
+                title: item.name; subtitle: item.target;
+                kind: item.kind == 1 ? "文件夹" : item.kind == 2 ? "网页" : "应用";
+                selected: root.selected-index == index;
+                choose => { root.selected-index = index; root.open-recommendation(index); }
             }
-            ResultRow {
-                icon: @image-url("icons/terminal.svg"); icon-background: #eef1f6;
-                title: root.is-macos ? "Terminal" : "Windows Terminal";
-                subtitle: "终端 · 在命令行中工作"; kind: "应用";
-                shortcut: root.is-macos ? "⌘ 2" : "Alt 2";
-                selected: root.selected-index == 1;
-                choose => { root.selected-index = 1; input.focus(); }
-            }
-            ResultRow {
-                icon: @image-url("icons/folder.svg"); icon-background: #fff4dc;
-                title: "Documents"; subtitle: "文档 · 常用文件与工作资料"; kind: "文件夹";
-                shortcut: root.is-macos ? "⌘ 3" : "Alt 3";
-                selected: root.selected-index == 2;
-                choose => { root.selected-index = 2; input.focus(); }
-            }
-            ResultRow {
-                icon: @image-url("icons/settings.svg"); icon-background: #edf0f7;
-                title: root.is-macos ? "系统设置" : "Windows 设置";
-                subtitle: "系统 · 个性化、网络与设备"; kind: "命令";
-                shortcut: root.is-macos ? "⌘ 4" : "Alt 4";
-                selected: root.selected-index == 3;
-                choose => { root.selected-index = 3; input.focus(); }
-            }
-            ResultRow {
-                icon: @image-url("icons/globe.svg"); icon-background: #e9f2fd;
-                title: "GitHub"; subtitle: "github.com · 探索你的下一个项目"; kind: "网页";
-                shortcut: root.is-macos ? "⌘ 5" : "Alt 5";
-                selected: root.selected-index == 4;
-                choose => { root.selected-index = 4; input.focus(); }
-            }
-            ResultRow {
-                icon: @image-url("icons/calculator.svg"); icon-background: #f1ecfb;
-                title: "计算器"; subtitle: "快速计算 · 输入表达式即可开始"; kind: "工具";
-                shortcut: root.is-macos ? "⌘ 6" : "Alt 6";
-                selected: root.selected-index == 5;
-                choose => { root.selected-index = 5; input.focus(); }
+                for tab[index] in root.browser-bookmarks : ResultRow {
+                    visible: root.bookmark-search-active; y: index * 54px;
+                    icon: @image-url("icons/globe.svg"); icon-background: #e9f2fd;
+                    title: tab.title; subtitle: tab.url; kind: "书签";
+                    selected: root.selected-index == index;
+                    choose => { root.selected-index = index; root.open-bookmark(index); }
             }
             }
+        }
+        if !root.web-search-active && root.result-count == 0 : Text {
+            x: 24px; y: 150px; width: 672px; height: 100px;
+            text: root.bookmark-search-active ? "输入 ll 空格 关键词，按标题或网址查找收藏书签。" : root.query-text == "" ? "还没有推荐，请在设置的推荐管理中添加。" : "没有匹配的推荐";
+            color: Theme.muted; font-size: 13px; horizontal-alignment: center; vertical-alignment: center;
         }
         if root.query-hint != "" : Text {
             x: 24px; y: 96px; width: 672px; height: 27px;

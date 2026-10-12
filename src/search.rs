@@ -2,6 +2,11 @@ use crate::{AppWindow, SearchTagEntry, SettingsWindow, search_tags::Store};
 use slint::{ComponentHandle, ModelRc, VecModel};
 use std::{cell::RefCell, rc::Rc};
 
+pub fn bookmark_keyword(input: &str) -> Option<&str> {
+    let (prefix, query) = input.trim_start().split_once(char::is_whitespace)?;
+    prefix.eq_ignore_ascii_case("ll").then_some(query.trim())
+}
+
 fn refresh(settings: &SettingsWindow, store: &Store) {
     let model: ModelRc<SearchTagEntry> = Rc::new(VecModel::from(
         store
@@ -20,6 +25,13 @@ fn refresh(settings: &SettingsWindow, store: &Store) {
 
 fn preview(ui: &AppWindow, store: &Store) {
     let input = ui.get_query_text();
+    if bookmark_keyword(input.as_str()).is_some() {
+        ui.set_bookmark_search_active(true);
+        ui.set_web_search_active(false);
+        ui.invoke_bookmark_query(input);
+        return;
+    }
+    ui.set_bookmark_search_active(false);
     if let Some((tag, query)) = store.preview(input.as_str()) {
         ui.set_web_search_active(true);
         ui.set_web_search_title(format!("使用 {} 搜索", tag.name).into());
@@ -32,6 +44,7 @@ fn preview(ui: &AppWindow, store: &Store) {
         ui.set_query_error(false);
         ui.set_selected_index(0);
     } else {
+        ui.invoke_recommendation_query(input.clone());
         ui.set_web_search_active(false);
         ui.set_query_hint("".into());
         ui.set_query_error(false);
@@ -62,6 +75,14 @@ pub fn bind_with_opener(
         let Some(ui) = weak.upgrade() else {
             return;
         };
+        if bookmark_keyword(input.as_str()).is_some() {
+            ui.invoke_open_bookmark(ui.get_selected_index());
+            return;
+        }
+        if submitted_store.borrow().preview(input.as_str()).is_none() {
+            ui.invoke_open_recommendation(ui.get_selected_index());
+            return;
+        }
         let result = submitted_store.borrow().resolve(input.as_str());
         match result {
             Ok(request) => {

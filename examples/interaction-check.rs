@@ -75,10 +75,65 @@ fn key(ui: &AppWindow, key: Key) {
         .dispatch_event(WindowEvent::KeyReleased { text });
 }
 
+#[cfg(windows)]
+fn assert_cursor_screen_centered(ui: &AppWindow) {
+    #[repr(C)]
+    struct Point {
+        x: i32,
+        y: i32,
+    }
+    #[link(name = "user32")]
+    unsafe extern "system" {
+        fn GetCursorPos(point: *mut Point) -> i32;
+    }
+    let mut point = Point { x: 0, y: 0 };
+    assert_ne!(unsafe { GetCursorPos(&mut point) }, 0);
+    ui.window().with_winit_window(|native| {
+        let monitors: Vec<_> = native.available_monitors().collect();
+        let target = monitors
+            .iter()
+            .find(|m| {
+                let p = m.position();
+                let s = m.size();
+                point.x >= p.x
+                    && point.y >= p.y
+                    && point.x < p.x + s.width as i32
+                    && point.y < p.y + s.height as i32
+            })
+            .unwrap();
+        let origin = target.position();
+        let screen = target.size();
+        let size = native.outer_size();
+        let position = native.outer_position().unwrap();
+        assert!((position.x - origin.x - (screen.width as i32 - size.width as i32) / 2).abs() <= 2);
+        assert!(
+            (position.y - origin.y - (screen.height as i32 - size.height as i32) / 2).abs() <= 2
+        );
+        println!(
+            "PASS: cursor-screen centering among {} monitor(s), origin {:?}, scale {}",
+            monitors.len(),
+            origin,
+            target.scale_factor()
+        );
+    });
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     launcher::configure_backend()?;
     // Exercise real OS registration. Registration errors must be surfaced.
     let ui = AppWindow::new()?;
+    ui.set_recommendations(
+        std::rc::Rc::new(slint::VecModel::from(
+            (0..6)
+                .map(|index| RecommendationEntry {
+                    name: format!("Test {index}").into(),
+                    kind: 2,
+                    target: "https://example.com".into(),
+                })
+                .collect::<Vec<_>>(),
+        ))
+        .into(),
+    );
     ui.set_is_macos(cfg!(target_os = "macos"));
     let registration = hotkeys::register(&ui)?;
     println!("Registered shortcut: {}", registration.shortcut);
@@ -97,6 +152,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             match stage.get() {
                 0 => {
                     assert!(ui.window().is_visible());
+                    #[cfg(windows)]
+                    assert_cursor_screen_centered(&ui);
                     ui.invoke_focus_search();
                     key(&ui, Key::UpArrow);
                     assert_eq!(ui.get_selected_index(), 0);

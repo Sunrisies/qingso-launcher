@@ -102,6 +102,9 @@ impl Store {
             name: name.trim().into(),
             url_template: template.trim().into(),
         };
+        if tag.keyword.eq_ignore_ascii_case("ll") {
+            return Err(invalid("ll 是内置浏览器书签搜索命令，请使用其他标签"));
+        }
         validate(&tag)?;
         if self
             .tags

@@ -1,5 +1,7 @@
 import { Theme } from "theme.slint";
-import { LineEdit, Palette, ScrollView, Switch } from "std-widgets.slint";
+import { LineEdit, Palette, ScrollView, Switch, ComboBox } from "std-widgets.slint";
+
+export struct RecommendationEntry { name: string, kind: int, target: string }
 
 export struct SearchTagEntry { keyword: string, name: string, url-template: string }
 
@@ -112,6 +114,41 @@ component TagDialog inherits Rectangle {
     init => { keyword-input.focus(); }
 }
 
+component RecommendationDialog inherits Rectangle {
+    in-out property <string> name;
+    in-out property <int> kind;
+    in-out property <string> target;
+    in property <bool> editing;
+    in property <string> status;
+    in property <bool> error;
+    callback save(); callback cancel();
+    background: #14243c66;
+    TouchArea { scroll-event(event) => { return accept; } }
+    FocusScope {
+        width: parent.width; height: parent.height;
+        key-pressed(event) => { if event.text == Key.Escape { root.cancel(); return accept; } return reject; }
+        Card {
+            x: (parent.width - 560px) / 2; y: (parent.height - 400px) / 2; width: 560px; height: 400px;
+            drop-shadow-blur: 32px; drop-shadow-offset-y: 12px; drop-shadow-color: #14243c30;
+            Text { x: 28px; y: 25px; text: root.editing ? "编辑推荐" : "添加推荐"; font-size: 21px; font-weight: 700; color: Theme.text; }
+            Text { x: 28px; y: 60px; text: "把常用应用、文件夹和网页放在搜索框里。"; font-size: 12px; color: Theme.secondary; }
+            Action { x: 504px; y: 18px; width: 36px; height: 36px; quiet: true; text: "×"; clicked => { root.cancel(); } }
+            Text { x: 28px; y: 96px; text: "类型"; font-size: 12px; color: Theme.secondary; }
+            Text { x: 196px; y: 96px; text: "名称"; font-size: 12px; color: Theme.secondary; }
+            ComboBox { x: 28px; y: 118px; width: 148px; height: 40px; model: ["应用", "文件夹", "网页"]; current-index <=> root.kind; }
+            name-input := LineEdit { x: 196px; y: 118px; width: 336px; height: 40px; text <=> root.name; placeholder-text: "例如 GitHub"; accepted(value) => { root.save(); } }
+            Text { x: 28px; y: 180px; text: root.kind == 2 ? "网页地址" : "完整路径"; font-size: 12px; color: Theme.secondary; }
+            LineEdit { x: 28px; y: 202px; width: 504px; height: 40px; text <=> root.target; placeholder-text: root.kind == 2 ? "https://github.com" : "粘贴应用或文件夹的绝对路径"; accepted(value) => { root.save(); } }
+            Text { x: 28px; y: 254px; text: "应用支持 Windows 程序和 macOS .app，路径不需要加引号。"; font-size: 11px; color: Theme.muted; }
+            Text { x: 28px; y: 280px; width: 504px; height: 40px; text: root.status; color: root.error ? Theme.error : Theme.secondary; font-size: 12px; wrap: word-wrap; }
+            Rectangle { y: 328px; width: parent.width; height: 1px; background: Theme.divider; }
+            Action { x: 316px; y: 346px; width: 88px; height: 36px; quiet: true; text: "取消"; clicked => { root.cancel(); } }
+            Action { x: 420px; y: 346px; width: 112px; height: 36px; primary: true; text: root.editing ? "保存修改" : "添加推荐"; clicked => { root.save(); } }
+        }
+    }
+    init => { name-input.focus(); }
+}
+
 export component SettingsWindow inherits Window {
     title: "轻搜 · 设置";
     preferred-width: 920px; preferred-height: 660px;
@@ -132,6 +169,29 @@ export component SettingsWindow inherits Window {
     in-out property <string> autostart-status: "登录系统后自动在托盘运行，不弹出搜索框。";
     in-out property <bool> autostart-error: false;
     callback set-autostart(bool);
+    in-out property <bool> show-browser-bookmarks: false;
+    in property <string> bookmark-directory;
+    in-out property <string> edited-bookmark-directory;
+    in-out property <string> bookmark-status: "正在读取 Chrome 本地书签…";
+    in-out property <bool> bookmark-error: false;
+    callback refresh-bookmarks();
+    callback save-bookmark-directory(string);
+    in-out property <bool> show-recommendations: false;
+    in property <[RecommendationEntry]> recommendations;
+    in-out property <int> recommendation-index: -1;
+    in-out property <int> recommendation-kind: 0;
+    in-out property <string> recommendation-name;
+    in-out property <string> recommendation-target;
+    in-out property <string> recommendation-status;
+    in-out property <bool> recommendation-error: false;
+    in-out property <bool> recommendation-editor-open: false;
+    callback save-recommendation(int, string, int, string);
+    callback edit-recommendation(int);
+    callback delete-recommendation(int);
+    public function begin-add-recommendation() {
+        root.recommendation-index = -1; root.recommendation-name = ""; root.recommendation-target = "";
+        root.recommendation-kind = 0; root.recommendation-status = ""; root.recommendation-error = false; root.recommendation-editor-open = true;
+    }
     in-out property <bool> show-search-tags: false;
     in property <[SearchTagEntry]> search-tags;
     in-out property <int> editing-tag-index: -1;
@@ -160,8 +220,10 @@ export component SettingsWindow inherits Window {
         Image { x: 24px; y: 28px; width: 32px; height: 32px; source: @image-url("icons/tray.svg"); }
         Text { x: 68px; y: 29px; height: 30px; text: "轻搜"; font-size: 21px; font-weight: 700; color: Theme.text; vertical-alignment: center; }
         Text { x: 24px; y: 90px; text: "偏好设置"; font-size: 11px; color: Theme.muted; }
-        Action { enabled: !root.editor-open; x: 16px; y: 120px; width: 168px; height: 44px; navigation: true; quiet: true; selected: !root.show-search-tags; icon: @image-url("icons/settings.svg"); text: "常规设置"; clicked => { root.show-search-tags = false; } }
-        Action { enabled: !root.editor-open; x: 16px; y: 174px; width: 168px; height: 44px; navigation: true; quiet: true; selected: root.show-search-tags; icon: @image-url("icons/globe.svg"); text: "搜索标签"; clicked => { root.show-search-tags = true; } }
+        Action { enabled: !root.editor-open && !root.recommendation-editor-open; x: 16px; y: 120px; width: 168px; height: 44px; navigation: true; quiet: true; selected: !root.show-search-tags && !root.show-recommendations && !root.show-browser-bookmarks; icon: @image-url("icons/settings.svg"); text: "常规设置"; clicked => { root.show-search-tags = false; root.show-recommendations = false; root.show-browser-bookmarks = false; } }
+        Action { enabled: !root.editor-open && !root.recommendation-editor-open; x: 16px; y: 174px; width: 168px; height: 44px; navigation: true; quiet: true; selected: root.show-search-tags; icon: @image-url("icons/globe.svg"); text: "搜索标签"; clicked => { root.show-search-tags = true; root.show-recommendations = false; root.show-browser-bookmarks = false; } }
+        Action { enabled: !root.editor-open && !root.recommendation-editor-open; x: 16px; y: 228px; width: 168px; height: 44px; navigation: true; quiet: true; selected: root.show-recommendations; icon: @image-url("icons/folder.svg"); text: "推荐管理"; clicked => { root.show-recommendations = true; root.show-search-tags = false; root.show-browser-bookmarks = false; } }
+        Action { enabled: !root.editor-open && !root.recommendation-editor-open; x: 16px; y: 282px; width: 168px; height: 44px; navigation: true; quiet: true; selected: root.show-browser-bookmarks; icon: @image-url("icons/globe.svg"); text: "浏览器书签"; clicked => { root.show-browser-bookmarks = true; root.show-search-tags = false; root.show-recommendations = false; } }
         Rectangle { x: 24px; y: parent.height - 82px; width: 152px; height: 1px; background: Theme.divider; }
         Text { x: 24px; y: parent.height - 62px; text: "轻搜  ·  " + root.app-version; font-size: 11px; color: Theme.muted; }
         Rectangle { x: 24px; y: parent.height - 29px; width: 6px; height: 6px; border-radius: 3px; background: Theme.success; }
@@ -171,10 +233,10 @@ export component SettingsWindow inherits Window {
 
     content := Rectangle {
         x: 200px; y: 0px; width: parent.width - 200px; height: parent.height; background: transparent;
-        Text { x: 32px; y: 30px; text: root.show-search-tags ? "搜索标签" : "常规设置"; color: Theme.text; font-size: 26px; font-weight: 700; }
-        Text { x: 32px; y: 76px; text: root.show-search-tags ? "为常用网站设置简短标签，搜索时一步直达。" : "管理应用信息与日常使用习惯。"; color: Theme.secondary; font-size: 13px; }
+        Text { x: 32px; y: 30px; text: root.show-browser-bookmarks ? "浏览器书签" : root.show-recommendations ? "推荐管理" : root.show-search-tags ? "搜索标签" : "常规设置"; color: Theme.text; font-size: 26px; font-weight: 700; }
+        Text { x: 32px; y: 76px; text: root.show-browser-bookmarks ? "直接读取 Chrome 收藏书签，用 ll 空格搜索并打开。" : root.show-recommendations ? "管理搜索框中的推荐，点击或回车即可打开。" : root.show-search-tags ? "为常用网站设置简短标签，搜索时一步直达。" : "管理应用信息与日常使用习惯。"; color: Theme.secondary; font-size: 13px; }
 
-        if !root.show-search-tags : Rectangle {
+        if !root.show-search-tags && !root.show-recommendations && !root.show-browser-bookmarks : Rectangle {
             width: parent.width; height: parent.height; background: transparent;
             Card {
                 x: 32px; y: 120px; width: parent.width - 64px; height: 148px;
@@ -207,22 +269,65 @@ export component SettingsWindow inherits Window {
             Text { x: 36px; y: 615px; width: parent.width - 72px; height: 30px; text: "配置文件：" + root.config-path; color: Theme.muted; font-size: 10px; wrap: word-wrap; }
         }
 
+        if root.show-browser-bookmarks : Rectangle {
+            width: parent.width; height: parent.height; background: transparent;
+            Card {
+                x: 32px; y: 120px; width: parent.width - 64px; height: 116px;
+                Text { x: 24px; y: 20px; text: "本地书签"; color: Theme.text; font-size: 16px; font-weight: 600; }
+                Text { x: 24px; y: 54px; width: parent.width - 48px; height: 44px; text: root.bookmark-status; color: root.bookmark-error ? Theme.error : Theme.secondary; font-size: 13px; wrap: word-wrap; }
+            }
+            Card {
+                x: 32px; y: 258px; width: parent.width - 64px; height: 286px;
+                Text { x: 24px; y: 20px; text: "Chrome 数据目录"; color: Theme.text; font-size: 16px; font-weight: 600; }
+                Text { x: 24px; y: 54px; width: parent.width - 48px; height: 32px; text: "自动读取所有配置文件中的 Bookmarks。自定义目录留空时，使用系统默认位置。"; color: Theme.secondary; font-size: 12px; wrap: word-wrap; }
+                LineEdit { x: 24px; y: 98px; width: parent.width - 48px; height: 40px; text <=> root.edited-bookmark-directory; placeholder-text: "留空使用默认目录，或粘贴 Chrome 数据目录完整路径"; accepted(value) => { root.save-bookmark-directory(value); } }
+                Text { x: 24px; y: 154px; width: parent.width - 48px; height: 50px; text: "当前目录：" + root.bookmark-directory; color: Theme.muted; font-size: 11px; wrap: word-wrap; }
+                Action { x: 24px; y: 222px; width: 144px; height: 40px; primary: true; text: "保存目录"; clicked => { root.save-bookmark-directory(root.edited-bookmark-directory); } }
+                Action { x: 184px; y: 222px; width: 144px; height: 40px; text: "刷新书签"; clicked => { root.refresh-bookmarks(); } }
+            }
+            Text { x: 36px; y: 566px; width: parent.width - 72px; height: 72px; text: "输入 ll 空格 关键词，按书签标题和网址匹配。点击或回车在默认浏览器打开网址。书签文件变化后自动更新，无需安装扩展，不修改浏览器文件。"; color: Theme.muted; font-size: 12px; wrap: word-wrap; }
+        }
+        if root.show-recommendations : Rectangle {
+            width: parent.width; height: parent.height; background: transparent;
+            Card {
+                x: 32px; y: 120px; width: parent.width - 64px; height: parent.height - 184px;
+                Text { x: 24px; y: 17px; text: "已添加的推荐"; color: Theme.text; font-size: 14px; font-weight: 600; }
+                Text { x: 126px; y: 20px; text: root.recommendations.length + " 个项目"; color: Theme.muted; font-size: 11px; }
+                Action { enabled: !root.recommendation-editor-open; x: parent.width - 144px; y: 12px; width: 120px; height: 36px; primary: true; text: "+ 添加推荐"; clicked => { root.begin-add-recommendation(); } }
+                ScrollView {
+                    enabled: !root.recommendation-editor-open; x: 12px; y: 64px; width: parent.width - 24px; height: parent.height - 76px;
+                    horizontal-scrollbar-policy: always-off; vertical-scrollbar-policy: as-needed;
+                    content-height: recommendations-layout.height; content-width: self.visible-width;
+                    recommendations-layout := VerticalLayout {
+                        width: parent.visible-width - 14px; height: self.preferred-height; spacing: 0px;
+                        for item[index] in root.recommendations : TagRow {
+                            enabled: !root.recommendation-editor-open; width: recommendations-layout.width;
+                            tag: { keyword: item.kind == 1 ? "目录" : item.kind == 2 ? "网页" : "应用", name: item.name, url-template: item.target };
+                            edit => { root.edit-recommendation(index); }
+                            remove => { root.delete-recommendation(index); }
+                        }
+                    }
+                }
+                if root.recommendations.length == 0 : Text { x: 24px; y: 80px; width: parent.width - 48px; height: parent.height - 104px; text: "还没有推荐，点击右上角添加。"; color: Theme.muted; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
+            }
+            Text { x: 36px; y: parent.height - 44px; width: parent.width - 72px; height: 32px; text: root.recommendation-status; color: root.recommendation-error ? Theme.error : Theme.secondary; font-size: 11px; wrap: word-wrap; }
+        }
         if root.show-search-tags : Rectangle {
             width: parent.width; height: parent.height; background: transparent;
             Card {
                 x: 32px; y: 120px; width: parent.width - 64px; height: parent.height - 184px;
                 Text { x: 24px; y: 17px; text: "已添加的标签"; color: Theme.text; font-size: 14px; font-weight: 600; }
                 Text { x: 126px; y: 20px; text: root.search-tags.length + " 个标签"; color: Theme.muted; font-size: 11px; }
-                Action { enabled: !root.editor-open; x: parent.width - 144px; y: 12px; width: 120px; height: 36px; primary: true; text: "+ 添加标签"; clicked => { root.begin-add-tag(); } }
+                Action { enabled: !root.editor-open && !root.recommendation-editor-open; x: parent.width - 144px; y: 12px; width: 120px; height: 36px; primary: true; text: "+ 添加标签"; clicked => { root.begin-add-tag(); } }
                 ScrollView {
-                    enabled: !root.editor-open;
+                    enabled: !root.editor-open && !root.recommendation-editor-open;
                     x: 12px; y: 64px; width: parent.width - 24px; height: parent.height - 76px;
                     horizontal-scrollbar-policy: always-off; vertical-scrollbar-policy: as-needed;
                     content-height: tags-layout.height; content-width: self.visible-width;
                     tags-layout := VerticalLayout {
                         width: parent.visible-width - 14px; height: self.preferred-height; spacing: 0px;
                         for tag[index] in root.search-tags : TagRow {
-                            enabled: !root.editor-open; width: tags-layout.width; tag: tag;
+                            enabled: !root.editor-open && !root.recommendation-editor-open; width: tags-layout.width; tag: tag;
                             edit => { root.edit-tag(index); }
                             remove => { root.delete-tag(index); }
                         }
@@ -243,6 +348,13 @@ export component SettingsWindow inherits Window {
         error: root.tag-error;
         cancel => { root.cancel-tag-editor(); }
         save => { root.save-tag(root.editing-tag-index, root.tag-keyword, root.tag-name, root.tag-template); }
+    }
+    if root.recommendation-editor-open : RecommendationDialog {
+        width: parent.width; height: parent.height;
+        name <=> root.recommendation-name; kind <=> root.recommendation-kind; target <=> root.recommendation-target;
+        editing: root.recommendation-index >= 0; status: root.recommendation-status; error: root.recommendation-error;
+        cancel => { root.recommendation-editor-open = false; root.recommendation-status = ""; root.recommendation-error = false; }
+        save => { root.save-recommendation(root.recommendation-index, root.recommendation-name, root.recommendation-kind, root.recommendation-target); }
     }
     init => { Palette.color-scheme = ColorScheme.light; }
 }

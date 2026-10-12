@@ -82,6 +82,11 @@ pub fn create(
         &settings,
         Rc::new(RefCell::new(crate::search_tags::Store::load()?)),
     );
+    crate::recommendations::bind(
+        ui,
+        &settings,
+        Rc::new(RefCell::new(crate::recommendations::Store::load()?)),
+    );
     Ok(settings)
 }
 

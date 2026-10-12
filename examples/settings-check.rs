@@ -15,6 +15,8 @@ mod config;
 mod hotkeys;
 #[path = "../src/launcher.rs"]
 mod launcher;
+#[path = "../src/recommendations.rs"]
+mod recommendations;
 #[path = "../src/search.rs"]
 mod search;
 #[path = "../src/search_tags.rs"]

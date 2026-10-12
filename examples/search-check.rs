@@ -15,6 +15,9 @@ mod config;
 #[path = "../src/launcher.rs"]
 #[allow(dead_code)]
 mod launcher;
+#[path = "../src/recommendations.rs"]
+#[allow(dead_code)]
+mod recommendations;
 #[path = "../src/search.rs"]
 #[allow(dead_code)]
 mod search;
@@ -59,11 +62,25 @@ fn main() -> Result<(), Box<dyn Error>> {
         Ok(())
     });
     ui.show()?;
+    let urls = opened.clone();
+    recommendations::bind_with_opener(
+        &ui,
+        &preferences,
+        Rc::new(RefCell::new(recommendations::Store::load()?)),
+        move |item| {
+            urls.borrow_mut().push(item.target.clone());
+            Ok(())
+        },
+    );
     let weak = ui.as_weak();
     let settings_weak = preferences.as_weak();
     slint::Timer::single_shot(Duration::from_millis(350), move || {
         let ui = weak.upgrade().unwrap();
         let settings = settings_weak.upgrade().unwrap();
+        submit(&ui, "GitHub");
+        assert!(!ui.window().is_visible());
+        assert_eq!(opened.borrow().as_slice(), &["https://github.com"]);
+        opened.borrow_mut().clear();
         submit(&ui, "b 中文 C++ & Rust");
         assert!(!ui.window().is_visible());
         assert_eq!(opened.borrow().len(), 1);

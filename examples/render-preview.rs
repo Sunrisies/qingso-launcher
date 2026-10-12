@@ -15,6 +15,23 @@ fn main() -> Result<(), Box<dyn Error>> {
         .unwrap_or_else(|| "preview.bmp".into());
     let ui = AppWindow::new()?;
     ui.set_is_macos(cfg!(target_os = "macos"));
+    if std::env::args().nth(2).as_deref() == Some("chrome") {
+        ui.set_bookmark_search_active(true);
+        ui.set_query_text("ll rust".into());
+        ui.set_query_hint("Chrome 书签 · 6 个匹配结果 · 回车打开".into());
+        ui.set_browser_bookmarks(
+            std::rc::Rc::new(slint::VecModel::from(
+                (0..6)
+                    .map(|index| BrowserBookmarkEntry {
+                        title: format!("Rust 文档 · 收藏书签 {}", index + 1).into(),
+                        url: format!("https://doc.rust-lang.org/book/chapter-{index}").into(),
+                        source: "Default".into(),
+                    })
+                    .collect::<Vec<_>>(),
+            ))
+            .into(),
+        );
+    }
     if std::env::args().nth(2).as_deref() == Some("scroll") {
         ui.set_results_scroll_y(-162.0);
     }

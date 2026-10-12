@@ -15,6 +15,7 @@ single-instance = "0.3.3"
 slint = { version = "1.18.1", features = ["unstable-winit-030"] }
 url = "2.5.8"
 webbrowser = "1.2.4"
+open = "5.3"
 
 [build-dependencies]
 slint-build = "1.18.1"

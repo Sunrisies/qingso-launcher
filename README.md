@@ -4,7 +4,20 @@
 
 正式软件名称为“轻搜”，Cargo 包名为 `qingso-launcher`，Windows 程序为 `qingso-launcher.exe`。
 
-当前实现浅色无边框窗口、搜索输入框、分类标签、六条静态示例结果、选中与悬停状态、SVG 图标及基础启动器交互。上下方向键可选择结果，选中项自动滚动到可见区域；点击结果也可选择。网站标签搜索已接入，匹配标签时按 Enter 可打开搜索结果。应用 / 文件搜索、分类切换及应用启动仍未接入，Alt / ⌘ 数字及 Ctrl / ⌘ K 仍是视觉提示。
+## 浏览器书签搜索
+
+输入 `ll 空格 关键词`，直接读取 Chrome 本地收藏书签，按标题和网址匹配，忽略大小写；多个关键词需同时匹配。`ll 空格` 显示全部书签，上下键选择，点击或回车在默认浏览器打开网址。结果最多显示三条，更多结果自动出现滚动条。
+
+无需安装浏览器扩展。设置 → 浏览器书签可以查看读取状态、刷新或修改 Chrome 数据目录，留空恢复默认位置。自动读取数据目录中的各个配置文件，书签文件变化后自动刷新；浏览器未启动也可以搜索。
+
+- Windows 默认目录：`%LOCALAPPDATA%\Google\Chrome\User Data`
+- macOS 默认目录：`~/Library/Application Support/Google/Chrome`
+
+也可以填写单个 Chrome 配置文件目录。设置保存在轻搜配置目录的 `browser-bookmarks.json`。本功能只读浏览器的 `Bookmarks` JSON，不修改书签；不执行 javascript 书签脚本。打开的是收藏网址，不切换已打开的标签页。Windows 已验证，macOS 仍需实机验证。
+
+参考 Flow Launcher 的 [ChromiumBookmarkLoader](https://github.com/Flow-Launcher/Flow.Launcher/blob/dev/Plugins/Flow.Launcher.Plugin.BrowserBookmark/ChromiumBookmarkLoader.cs) 的文件读取思路，本项目独立实现 Rust 解析和缓存。检查：`cargo test --bin qingso-launcher`、`cargo run --example bookmarks-check`。
+
+当前实现浅色无边框窗口、搜索输入框、可配置推荐、选中与悬停状态、SVG 图标及基础启动器交互。上下方向键可选择结果，选中项自动滚动到可见区域；点击或回车打开推荐应用、文件夹或网页。普通输入按推荐名称和目标筛选，网站标签输入按 Enter 打开搜索结果。分类切换及 Ctrl / ⌘ K 仍是视觉提示。
 
 结果区最多同时显示三条，每条 54 逻辑像素。内容超过三条时自动显示垂直滚动条，可通过鼠标滚轮、触控板或拖动滚动条查看其余结果；三条及以下不显示滚动条。窗口逻辑尺寸为 760 × 386。
 
@@ -134,3 +147,8 @@ cargo run --example search-check
 设置检查使用独立临时配置目录，验证原生托盘创建、打开窗口、快捷键格式与占用错误、保存失败保护、热更新、重新读取配置和托盘退出。`settings-preview.png` 为设置界面的实际渲染预览。
 
 搜索检查使用独立配置目录和捕获网址的浏览器替身，验证真实 Enter 回调、默认标签、添加 / 编辑 / 删除即时生效及持久化、网址编码和错误反馈，不会实际打开浏览器。`tags-preview.png` 为标签页预览。
+# 推荐管理与多屏使用
+
+在托盘中打开设置，选择“推荐管理”，可以添加、编辑和删除应用、文件夹或网页。应用和文件夹填写完整路径，网页填写 http/https 地址；修改会立即生效，保存在配置目录的 `recommendations.json`。空输入显示推荐，输入名称或路径可筛选，点击或回车打开选中项目。已有 `b 空格 内容` 等网站搜索标签优先处理。
+
+每次唤起窗口会在鼠标所在屏幕居中，支持位于主屏左侧或上方的显示器。Windows 已验证，macOS 实机验证仍待完成。
