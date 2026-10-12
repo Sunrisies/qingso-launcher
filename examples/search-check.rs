@@ -73,6 +73,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         submit(&ui, "x rust");
         assert!(ui.window().is_visible());
         assert!(ui.get_query_error());
+        settings.invoke_begin_add_tag();
+        assert!(settings.get_editor_open());
         settings.invoke_save_tag(
             -1,
             "g".into(),
@@ -80,7 +82,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             "https://github.com/search?q={query}".into(),
         );
         assert!(!settings.get_tag_error());
+        assert!(!settings.get_editor_open());
         assert_eq!(settings.get_search_tags().row_count(), 3);
+        settings.invoke_begin_add_tag();
         settings.invoke_save_tag(
             -1,
             "B".into(),
@@ -88,8 +92,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             "https://example.com/?q={query}".into(),
         );
         assert!(settings.get_tag_error());
+        assert!(settings.get_editor_open());
+        settings.invoke_cancel_tag_editor();
+        assert!(!settings.get_editor_open());
         assert_eq!(settings.get_search_tags().row_count(), 3);
         settings.invoke_edit_tag(2);
+        assert!(settings.get_editor_open());
         assert_eq!(settings.get_tag_keyword(), "g");
         settings.invoke_save_tag(
             2,
@@ -122,7 +130,55 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!(
             "PASS: duplicate tags, unknown tags, empty queries and browser failures remain visible with errors"
         );
-        slint::quit_event_loop().unwrap();
+        settings.set_show_search_tags(true);
+        settings.show().unwrap();
+        settings.invoke_begin_add_tag();
+        settings.set_tag_keyword("k".into());
+        settings.set_tag_name("键盘测试".into());
+        settings.set_tag_template("https://example.com/?q={query}".into());
+        let weak = settings.as_weak();
+        slint::Timer::single_shot(Duration::from_millis(350), move || {
+            let settings = weak.upgrade().unwrap();
+            settings.window().dispatch_event(WindowEvent::KeyPressed {
+                text: Key::Return.into(),
+            });
+            settings.window().dispatch_event(WindowEvent::KeyReleased {
+                text: Key::Return.into(),
+            });
+            assert!(
+                !settings.get_editor_open(),
+                "Enter should save and close the dialog"
+            );
+            assert_eq!(settings.get_search_tags().row_count(), 3);
+            settings.invoke_begin_add_tag();
+            let weak = settings.as_weak();
+            slint::Timer::single_shot(Duration::from_millis(350), move || {
+                let settings = weak.upgrade().unwrap();
+                settings.window().dispatch_event(WindowEvent::KeyPressed {
+                    text: Key::Return.into(),
+                });
+                assert!(
+                    settings.get_editor_open(),
+                    "Invalid data must leave the dialog open"
+                );
+                assert!(settings.get_tag_error());
+                settings.window().dispatch_event(WindowEvent::KeyReleased {
+                    text: Key::Return.into(),
+                });
+                settings.window().dispatch_event(WindowEvent::KeyPressed {
+                    text: Key::Escape.into(),
+                });
+                assert!(
+                    !settings.get_editor_open(),
+                    "Escape should cancel the dialog"
+                );
+                assert_eq!(settings.get_search_tags().row_count(), 3);
+                println!(
+                    "PASS: add/edit dialogs, cancel, Enter save, validation retention and Escape dismissal"
+                );
+                slint::quit_event_loop().unwrap();
+            });
+        });
     });
     slint::run_event_loop_until_quit()?;
     std::fs::remove_file(directory.join("search-tags.json"))?;

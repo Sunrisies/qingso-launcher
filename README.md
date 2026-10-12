@@ -48,6 +48,8 @@ cargo run
 
 在“设置 → 搜索标签”中添加、编辑或删除网站搜索标签。内置 `b` 对应百度、`n` 对应 npm：
 
+标签列表占据页面主体，点击右上角“添加标签”或列表中的“编辑”打开居中弹窗。保存成功自动关闭并刷新列表；错误留在弹窗中。取消、右上角关闭和 Esc 会放弃本次编辑，输入框中按 Enter 可保存。
+
 ```text
 b Rust 中文教程
 n @slint-ui/slint-ui
@@ -87,6 +89,7 @@ cargo run --example interaction-check
 cargo run --example settings-check
 cargo run --example render-settings
 cargo run --example render-settings -- tags
+cargo run --example render-settings -- dialog
 cargo run --example search-check
 ```
 

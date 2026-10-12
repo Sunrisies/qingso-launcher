@@ -4,6 +4,7 @@ import { LineEdit, Palette, ScrollView } from "std-widgets.slint";
 export struct SearchTagEntry { keyword: string, name: string, url-template: string }
 
 component Action inherits Rectangle {
+    in property <bool> enabled: true;
     in property <string> text;
     in property <bool> primary: false;
     in property <bool> quiet: false;
@@ -20,8 +21,9 @@ component Action inherits Rectangle {
     border-color: Theme.border;
     forward-focus: keys;
     accessible-role: button;
+    accessible-enabled: enabled;
     accessible-label: text;
-    accessible-action-default => { root.clicked(); }
+    accessible-action-default => { if root.enabled { root.clicked(); } }
     if root.navigation : Image {
         x: 16px; y: (parent.height - 18px) / 2; width: 18px; height: 18px;
         source: root.icon; colorize: root.selected ? Theme.accent : Theme.secondary;
@@ -32,8 +34,9 @@ component Action inherits Rectangle {
         horizontal-alignment: root.navigation ? left : center; vertical-alignment: center;
         color: root.primary ? #ffffff : root.destructive ? Theme.error : root.selected ? Theme.accent : Theme.text;
     }
-    touch := TouchArea { clicked => { keys.focus(); root.clicked(); } }
+    touch := TouchArea { enabled: root.enabled; clicked => { keys.focus(); root.clicked(); } }
     keys := FocusScope {
+        enabled: root.enabled;
         width: 0px;
         key-pressed(event) => {
             if event.text == Key.Return || event.text == Key.Space { root.clicked(); return accept; }
@@ -54,6 +57,7 @@ component Card inherits Rectangle {
 }
 
 component TagRow inherits Rectangle {
+    in property <bool> enabled: true;
     in property <SearchTagEntry> tag;
     callback edit(); callback remove();
     height: 56px;
@@ -64,9 +68,48 @@ component TagRow inherits Rectangle {
     }
     Text { x: 68px; y: 8px; width: parent.width - 230px; height: 20px; text: root.tag.name; color: Theme.text; font-size: 14px; font-weight: 600; overflow: elide; }
     Text { x: 68px; y: 30px; width: parent.width - 230px; height: 16px; text: root.tag.url-template; color: Theme.muted; font-size: 11px; overflow: elide; }
-    Action { x: parent.width - 148px; y: 10px; width: 66px; height: 36px; quiet: true; text: "编辑"; clicked => { root.edit(); } }
-    Action { x: parent.width - 78px; y: 10px; width: 66px; height: 36px; quiet: true; destructive: true; text: "删除"; clicked => { root.remove(); } }
+    Action { enabled: root.enabled; x: parent.width - 148px; y: 10px; width: 66px; height: 36px; quiet: true; text: "编辑"; clicked => { root.edit(); } }
+    Action { enabled: root.enabled; x: parent.width - 78px; y: 10px; width: 66px; height: 36px; quiet: true; destructive: true; text: "删除"; clicked => { root.remove(); } }
     Rectangle { x: 12px; y: parent.height - 1px; width: parent.width - 24px; height: 1px; background: Theme.divider; }
+}
+
+component TagDialog inherits Rectangle {
+    in-out property <string> keyword;
+    in-out property <string> name;
+    in-out property <string> url-template;
+    in property <bool> editing;
+    in property <string> status;
+    in property <bool> error;
+    callback save(); callback cancel();
+    background: #14243c66;
+    TouchArea { scroll-event(event) => { return accept; } }
+    FocusScope {
+        width: parent.width; height: parent.height;
+        key-pressed(event) => {
+            if event.text == Key.Escape { root.cancel(); return accept; }
+            return reject;
+        }
+        Card {
+            x: (parent.width - 560px) / 2; y: (parent.height - 400px) / 2;
+            width: 560px; height: 400px;
+            drop-shadow-blur: 32px; drop-shadow-offset-y: 12px; drop-shadow-color: #14243c30;
+            Text { x: 28px; y: 25px; text: root.editing ? "编辑搜索标签" : "添加搜索标签"; font-size: 21px; font-weight: 700; color: Theme.text; }
+            Text { x: 28px; y: 60px; text: "设置一个简短标签，快速搜索你常用的网站。"; font-size: 12px; color: Theme.secondary; }
+            Action { x: 504px; y: 18px; width: 36px; height: 36px; quiet: true; text: "×"; clicked => { root.cancel(); } }
+            Text { x: 28px; y: 96px; text: "标签"; font-size: 12px; color: Theme.secondary; }
+            Text { x: 196px; y: 96px; text: "网站名称"; font-size: 12px; color: Theme.secondary; }
+            keyword-input := LineEdit { x: 28px; y: 118px; width: 148px; height: 40px; text <=> root.keyword; placeholder-text: "例如 b"; accepted(value) => { root.save(); } }
+            LineEdit { x: 196px; y: 118px; width: 336px; height: 40px; text <=> root.name; placeholder-text: "例如 百度"; accepted(value) => { root.save(); } }
+            Text { x: 28px; y: 180px; text: "搜索网址模板"; font-size: 12px; color: Theme.secondary; }
+            LineEdit { x: 28px; y: 202px; width: 504px; height: 40px; text <=> root.url-template; placeholder-text: "https://www.baidu.com/s?wd={query}"; accepted(value) => { root.save(); } }
+            Text { x: 28px; y: 254px; text: "用 {query} 代替搜索内容，例如输入 b Rust。"; font-size: 11px; color: Theme.muted; }
+            Text { x: 28px; y: 280px; width: 504px; height: 40px; text: root.status; color: root.error ? Theme.error : Theme.secondary; font-size: 12px; wrap: word-wrap; }
+            Rectangle { x: 0px; y: 328px; width: 560px; height: 1px; background: Theme.divider; }
+            Action { x: 316px; y: 346px; width: 88px; height: 36px; quiet: true; text: "取消"; clicked => { root.cancel(); } }
+            Action { x: 420px; y: 346px; width: 112px; height: 36px; primary: true; text: root.editing ? "保存修改" : "添加标签"; clicked => { root.save(); } }
+        }
+    }
+    init => { keyword-input.focus(); }
 }
 
 export component SettingsWindow inherits Window {
@@ -92,11 +135,19 @@ export component SettingsWindow inherits Window {
     in-out property <string> tag-template;
     in-out property <string> tag-status: "使用 {query} 代表搜索内容，例如 https://www.baidu.com/s?wd={query}";
     in-out property <bool> tag-error: false;
+    in-out property <bool> editor-open: false;
     callback save-tag(int, string, string, string);
     callback edit-tag(int);
     callback delete-tag(int);
     public function reset-tag-editor() {
+        root.editor-open = false;
         root.editing-tag-index = -1; root.tag-keyword = ""; root.tag-name = ""; root.tag-template = "";
+    }
+    public function begin-add-tag() {
+        root.reset-tag-editor(); root.tag-error = false; root.tag-status = ""; root.editor-open = true;
+    }
+    public function cancel-tag-editor() {
+        root.reset-tag-editor(); root.tag-error = false; root.tag-status = "";
     }
 
     Rectangle {
@@ -104,8 +155,8 @@ export component SettingsWindow inherits Window {
         Image { x: 24px; y: 28px; width: 32px; height: 32px; source: @image-url("icons/tray.svg"); }
         Text { x: 68px; y: 29px; height: 30px; text: "Flow"; font-size: 21px; font-weight: 700; color: Theme.text; vertical-alignment: center; }
         Text { x: 24px; y: 90px; text: "偏好设置"; font-size: 11px; color: Theme.muted; }
-        Action { x: 16px; y: 120px; width: 168px; height: 44px; navigation: true; quiet: true; selected: !root.show-search-tags; icon: @image-url("icons/settings.svg"); text: "常规设置"; clicked => { root.show-search-tags = false; } }
-        Action { x: 16px; y: 174px; width: 168px; height: 44px; navigation: true; quiet: true; selected: root.show-search-tags; icon: @image-url("icons/globe.svg"); text: "搜索标签"; clicked => { root.show-search-tags = true; } }
+        Action { enabled: !root.editor-open; x: 16px; y: 120px; width: 168px; height: 44px; navigation: true; quiet: true; selected: !root.show-search-tags; icon: @image-url("icons/settings.svg"); text: "常规设置"; clicked => { root.show-search-tags = false; } }
+        Action { enabled: !root.editor-open; x: 16px; y: 174px; width: 168px; height: 44px; navigation: true; quiet: true; selected: root.show-search-tags; icon: @image-url("icons/globe.svg"); text: "搜索标签"; clicked => { root.show-search-tags = true; } }
         Rectangle { x: 24px; y: parent.height - 82px; width: 152px; height: 1px; background: Theme.divider; }
         Text { x: 24px; y: parent.height - 62px; text: "Flow Launcher  ·  " + root.app-version; font-size: 11px; color: Theme.muted; }
         Rectangle { x: 24px; y: parent.height - 29px; width: 6px; height: 6px; border-radius: 3px; background: Theme.success; }
@@ -151,39 +202,39 @@ export component SettingsWindow inherits Window {
         if root.show-search-tags : Rectangle {
             width: parent.width; height: parent.height; background: transparent;
             Card {
-                x: 32px; y: 120px; width: parent.width - 64px; height: 174px;
+                x: 32px; y: 120px; width: parent.width - 64px; height: parent.height - 184px;
                 Text { x: 24px; y: 17px; text: "已添加的标签"; color: Theme.text; font-size: 14px; font-weight: 600; }
-                Text { x: parent.width - 100px; y: 20px; width: 76px; text: root.search-tags.length + " 个标签"; color: Theme.muted; font-size: 11px; horizontal-alignment: right; }
+                Text { x: 126px; y: 20px; text: root.search-tags.length + " 个标签"; color: Theme.muted; font-size: 11px; }
+                Action { enabled: !root.editor-open; x: parent.width - 144px; y: 12px; width: 120px; height: 36px; primary: true; text: "+ 添加标签"; clicked => { root.begin-add-tag(); } }
                 ScrollView {
-                    x: 12px; y: 48px; width: parent.width - 24px; height: 120px;
+                    enabled: !root.editor-open;
+                    x: 12px; y: 64px; width: parent.width - 24px; height: parent.height - 76px;
                     horizontal-scrollbar-policy: always-off; vertical-scrollbar-policy: as-needed;
                     content-height: tags-layout.height; content-width: self.visible-width;
                     tags-layout := VerticalLayout {
                         width: parent.visible-width - 14px; height: self.preferred-height; spacing: 0px;
                         for tag[index] in root.search-tags : TagRow {
-                            width: tags-layout.width; tag: tag;
+                            enabled: !root.editor-open; width: tags-layout.width; tag: tag;
                             edit => { root.edit-tag(index); }
                             remove => { root.delete-tag(index); }
                         }
                     }
                 }
-                if root.search-tags.length == 0 : Text { x: 24px; y: 64px; width: parent.width - 48px; height: 80px; text: "还没有搜索标签，在下方添加第一个。"; color: Theme.muted; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
+                if root.search-tags.length == 0 : Text { x: 24px; y: 80px; width: parent.width - 48px; height: parent.height - 104px; text: "还没有搜索标签，点击右上角添加。"; color: Theme.muted; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
             }
-            Card {
-                x: 32px; y: 318px; width: parent.width - 64px; height: 286px;
-                Text { x: 24px; y: 20px; text: root.editing-tag-index == -1 ? "添加新标签" : "编辑搜索标签"; color: Theme.text; font-size: 16px; font-weight: 600; }
-                Text { x: 24px; y: 61px; text: "标签"; color: Theme.secondary; font-size: 12px; }
-                Text { x: 196px; y: 61px; text: "网站名称"; color: Theme.secondary; font-size: 12px; }
-                LineEdit { x: 24px; y: 84px; width: 152px; height: 38px; text <=> root.tag-keyword; placeholder-text: "例如 b"; }
-                LineEdit { x: 196px; y: 84px; width: parent.width - 220px; height: 38px; text <=> root.tag-name; placeholder-text: "例如 百度"; }
-                Text { x: 24px; y: 141px; text: "搜索网址模板"; color: Theme.secondary; font-size: 12px; }
-                LineEdit { x: 24px; y: 164px; width: parent.width - 48px; height: 38px; text <=> root.tag-template; placeholder-text: "https://www.baidu.com/s?wd={query}"; }
-                Text { x: 24px; y: 211px; text: "用 {query} 代替搜索内容，例如输入 b Rust。"; color: Theme.muted; font-size: 11px; }
-                Action { x: parent.width - 284px; y: 238px; width: 96px; height: 36px; quiet: true; text: "清空"; clicked => { root.reset-tag-editor(); } }
-                Action { x: parent.width - 172px; y: 238px; width: 148px; height: 36px; text: root.editing-tag-index == -1 ? "添加标签" : "保存修改"; primary: true; clicked => { root.save-tag(root.editing-tag-index, root.tag-keyword, root.tag-name, root.tag-template); } }
-            }
-            Text { x: 36px; y: 617px; width: parent.width - 72px; height: 32px; text: root.tag-status; color: root.tag-error ? Theme.error : Theme.secondary; font-size: 11px; wrap: word-wrap; }
+            Text { x: 36px; y: parent.height - 44px; width: parent.width - 72px; height: 32px; text: root.tag-status; color: root.tag-error ? Theme.error : Theme.secondary; font-size: 11px; wrap: word-wrap; }
         }
+    }
+    if root.editor-open : TagDialog {
+        x: 0px; y: 0px; width: parent.width; height: parent.height;
+        keyword <=> root.tag-keyword;
+        name <=> root.tag-name;
+        url-template <=> root.tag-template;
+        editing: root.editing-tag-index >= 0;
+        status: root.tag-status;
+        error: root.tag-error;
+        cancel => { root.cancel-tag-editor(); }
+        save => { root.save-tag(root.editing-tag-index, root.tag-keyword, root.tag-name, root.tag-template); }
     }
     init => { Palette.color-scheme = ColorScheme.light; }
 }

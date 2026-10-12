@@ -10,7 +10,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     ui.set_platform_text(format!("{} · {}", std::env::consts::OS, std::env::consts::ARCH).into());
     ui.set_current_hotkey("Ctrl+Alt+Space".into());
     ui.set_edited_hotkey("Ctrl+Alt+Space".into());
-    let tags_page = std::env::args().nth(1).as_deref() == Some("tags");
+    let dialog_page = std::env::args().nth(1).as_deref() == Some("dialog");
+    let tags_page = dialog_page || std::env::args().nth(1).as_deref() == Some("tags");
     ui.set_show_search_tags(tags_page);
     ui.set_search_tags(
         std::rc::Rc::new(slint::VecModel::from(vec![
@@ -33,12 +34,17 @@ fn main() -> Result<(), Box<dyn Error>> {
         .join("FlowLauncherPreview/hotkey.txt");
     ui.set_config_path(config.to_string_lossy().into_owned().into());
     ui.show()?;
+    if dialog_page {
+        ui.invoke_begin_add_tag();
+    }
     let weak = ui.as_weak();
     slint::Timer::single_shot(Duration::from_millis(350), move || {
         let ui = weak.upgrade().unwrap();
         let pixels = ui.window().take_snapshot().unwrap();
         let (width, height) = (pixels.width(), pixels.height());
-        let mut file = std::fs::File::create(if tags_page {
+        let mut file = std::fs::File::create(if dialog_page {
+            "tag-dialog-preview.bmp"
+        } else if tags_page {
             "tags-preview.bmp"
         } else {
             "settings-preview.bmp"

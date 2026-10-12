@@ -96,6 +96,7 @@ pub fn bind_with_opener(
             settings.set_tag_template(tag.url_template.clone().into());
             settings.set_tag_status("编辑后点击保存修改。".into());
             settings.set_tag_error(false);
+            settings.set_editor_open(true);
         }
     });
     let weak = settings.as_weak();
