@@ -13,6 +13,7 @@ pub fn configure_backend() -> Result<(), slint::PlatformError> {
     let backend = slint::BackendSelector::new()
         .backend_name("winit".into())
         .with_winit_window_attributes_hook(|attributes| {
+            let attributes = attributes.with_theme(Some(winit::window::Theme::Light));
             #[cfg(target_os = "windows")]
             {
                 use winit::platform::windows::WindowAttributesExtWindows;

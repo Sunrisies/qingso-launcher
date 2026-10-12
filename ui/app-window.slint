@@ -1,3 +1,4 @@
+import { Theme } from "theme.slint";
 // Static design preview. Sample results do not perform searches or launch apps.
 import { ScrollView, Palette } from "std-widgets.slint";
 export { SettingsWindow, LauncherTray } from "settings-window.slint";
@@ -5,11 +6,11 @@ export { SettingsWindow, LauncherTray } from "settings-window.slint";
 export component StartupErrorWindow inherits Window {
     title: "Flow · 启动失败";
     width: 520px; height: 190px;
-    background: #1c1f27;
+    background: Theme.surface;
     in property <string> message;
     Text {
         x: 24px; y: 24px; width: 472px; height: 142px;
-        text: root.message; color: #edf0f6; font-size: 14px;
+        text: root.message; color: Theme.text; font-size: 14px;
         wrap: word-wrap;
     }
 }
@@ -17,11 +18,11 @@ component KeyCap inherits Rectangle {
     in property <string> label;
     in property <bool> enter-icon: false;
     width: 26px; height: 22px;
-    background: #252830; border-radius: 5px;
-    border-width: 1px; border-color: #393d47;
+    background: Theme.key-background; border-radius: 5px;
+    border-width: 1px; border-color: Theme.border;
     Text {
         visible: !root.enter-icon;
-        text: root.label; color: #adb3c0; font-size: 11px;
+        text: root.label; color: Theme.secondary; font-size: 11px;
         horizontal-alignment: center; vertical-alignment: center;
     }
     if root.enter-icon : Image {
@@ -33,9 +34,9 @@ component Category inherits Rectangle {
     in property <string> label;
     in property <bool> selected: false;
     height: 27px; width: 56px; border-radius: 6px;
-    background: selected ? #2c3344 : transparent;
+    background: selected ? Theme.selected : transparent;
     Text {
-        text: root.label; color: root.selected ? #b7cdff : #888e9d;
+        text: root.label; color: root.selected ? Theme.accent : Theme.secondary;
         font-size: 12px; horizontal-alignment: center; vertical-alignment: center;
     }
 }
@@ -49,8 +50,8 @@ component ResultRow inherits Rectangle {
     in property <string> shortcut;
     in property <bool> selected: false;
     width: 680px; height: 54px; border-radius: 9px;
-    background: selected ? #293449 : (hover.has-hover ? #24272f : transparent);
-    border-width: selected ? 1px : 0px; border-color: #3b506e;
+    background: selected ? Theme.selected : (hover.has-hover ? Theme.hover : transparent);
+    border-width: selected ? 1px : 0px; border-color: Theme.selected-border;
     Rectangle {
         x: 12px; y: 9px; width: 36px; height: 36px;
         border-radius: 9px; background: root.icon-background;
@@ -58,23 +59,23 @@ component ResultRow inherits Rectangle {
     }
     Text {
         x: 62px; y: 8px; width: 430px; height: 20px;
-        text: root.title; color: #edf0f6; font-size: 14px; font-weight: 600;
+        text: root.title; color: Theme.text; font-size: 14px; font-weight: 600;
         overflow: elide; vertical-alignment: center;
     }
     Text {
         x: 62px; y: 29px; width: 480px; height: 16px;
-        text: root.subtitle; color: root.selected ? #9eacc3 : #828999;
+        text: root.subtitle; color: root.selected ? Theme.secondary : Theme.secondary;
         font-size: 11px; overflow: elide; vertical-alignment: center;
     }
     Text {
         x: 550px; width: 64px; height: parent.height;
-        text: root.kind; color: #737e91; font-size: 11px;
+        text: root.kind; color: Theme.muted; font-size: 11px;
         horizontal-alignment: right; vertical-alignment: center;
     }
     if root.selected : KeyCap { x: 648px; y: 16px; enter-icon: true; }
     if !root.selected : Text {
         x: 624px; width: 50px; height: parent.height;
-        text: root.shortcut; color: #596273; font-size: 11px;
+        text: root.shortcut; color: Theme.muted; font-size: 11px;
         horizontal-alignment: right; vertical-alignment: center;
     }
     hover := TouchArea { clicked => { root.choose(); } }
@@ -108,17 +109,17 @@ export component AppWindow inherits Window {
     }
     panel := Rectangle {
         x: 20px; y: 16px; width: 720px; height: 346px;
-        border-radius: 16px; background: #1c1f27;
-        border-width: 1px; border-color: #3a3e49;
+        border-radius: 16px; background: Theme.surface;
+        border-width: 1px; border-color: Theme.border;
         drop-shadow-blur: 18px; drop-shadow-offset-y: 6px;
-        drop-shadow-color: #00000070;
+        drop-shadow-color: #273b5a20;
         Image { x: 25px; y: 29px; width: 26px; height: 26px; source: @image-url("icons/search.svg"); }
         input := TextInput {
             x: 68px; y: 23px; width: 556px; height: 40px;
-            text <=> root.query-text; color: #f1f3f8; font-size: 21px;
+            text <=> root.query-text; color: Theme.text; font-size: 21px;
             vertical-alignment: center; single-line: true;
-            selection-background-color: #3b5684;
-            selection-foreground-color: #ffffff;
+            selection-background-color: #c8ddff;
+            selection-foreground-color: Theme.text;
             key-pressed(event) => {
                 if event.text == Key.Escape { root.close-requested(); return accept; }
                 if event.text == Key.UpArrow { root.move-selection(-1); return accept; }
@@ -128,17 +129,17 @@ export component AppWindow inherits Window {
         }
         if root.query-text == "" : Text {
             x: 68px; y: 23px; width: 556px; height: 40px;
-            text: "搜索应用、文件或命令…"; color: #777f90; font-size: 21px;
+            text: "搜索应用、文件或命令…"; color: Theme.muted; font-size: 21px;
             vertical-alignment: center;
         }
         Rectangle {
             x: 648px; y: 28px; width: 46px; height: 28px;
-            border-radius: 6px; background: dismiss.has-hover ? #30343e : #242831;
-            border-width: 1px; border-color: #373c47;
-            Text { text: "esc"; color: #929bac; font-size: 11px; horizontal-alignment: center; vertical-alignment: center; }
+            border-radius: 6px; background: dismiss.has-hover ? Theme.hover : Theme.key-background;
+            border-width: 1px; border-color: Theme.border;
+            Text { text: "esc"; color: Theme.secondary; font-size: 11px; horizontal-alignment: center; vertical-alignment: center; }
             dismiss := TouchArea { clicked => { root.close-requested(); } }
         }
-        Rectangle { x: 1px; y: 84px; width: 718px; height: 1px; background: #30343f; }
+        Rectangle { x: 1px; y: 84px; width: 718px; height: 1px; background: Theme.divider; }
         HorizontalLayout {
             x: 20px; y: 96px; width: 302px; height: 27px; spacing: 5px;
             Category { label: "全部"; selected: true; }
@@ -149,7 +150,7 @@ export component AppWindow inherits Window {
         }
         Text {
             x: 590px; y: 96px; width: 103px; height: 27px;
-            text: "推荐 · 6 项"; color: #71798a; font-size: 11px;
+            text: "推荐 · 6 项"; color: Theme.muted; font-size: 11px;
             horizontal-alignment: right; vertical-alignment: center;
         }
         results-scroll := ScrollView {
@@ -161,13 +162,13 @@ export component AppWindow inherits Window {
             result-layout := VerticalLayout {
             width: 680px; height: self.preferred-height; spacing: 0px;
             ResultRow {
-                icon: @image-url("icons/code.svg"); icon-background: #163950;
+                icon: @image-url("icons/code.svg"); icon-background: #e7f4ff;
                 title: "Visual Studio Code"; subtitle: "代码编辑器 · 开始下一段创作";
                 kind: "应用"; selected: root.selected-index == 0;
                 choose => { root.selected-index = 0; input.focus(); }
             }
             ResultRow {
-                icon: @image-url("icons/terminal.svg"); icon-background: #303339;
+                icon: @image-url("icons/terminal.svg"); icon-background: #eef1f6;
                 title: root.is-macos ? "Terminal" : "Windows Terminal";
                 subtitle: "终端 · 在命令行中工作"; kind: "应用";
                 shortcut: root.is-macos ? "⌘ 2" : "Alt 2";
@@ -175,14 +176,14 @@ export component AppWindow inherits Window {
                 choose => { root.selected-index = 1; input.focus(); }
             }
             ResultRow {
-                icon: @image-url("icons/folder.svg"); icon-background: #3d3426;
+                icon: @image-url("icons/folder.svg"); icon-background: #fff4dc;
                 title: "Documents"; subtitle: "文档 · 常用文件与工作资料"; kind: "文件夹";
                 shortcut: root.is-macos ? "⌘ 3" : "Alt 3";
                 selected: root.selected-index == 2;
                 choose => { root.selected-index = 2; input.focus(); }
             }
             ResultRow {
-                icon: @image-url("icons/settings.svg"); icon-background: #303340;
+                icon: @image-url("icons/settings.svg"); icon-background: #edf0f7;
                 title: root.is-macos ? "系统设置" : "Windows 设置";
                 subtitle: "系统 · 个性化、网络与设备"; kind: "命令";
                 shortcut: root.is-macos ? "⌘ 4" : "Alt 4";
@@ -190,14 +191,14 @@ export component AppWindow inherits Window {
                 choose => { root.selected-index = 3; input.focus(); }
             }
             ResultRow {
-                icon: @image-url("icons/globe.svg"); icon-background: #29384b;
+                icon: @image-url("icons/globe.svg"); icon-background: #e9f2fd;
                 title: "GitHub"; subtitle: "github.com · 探索你的下一个项目"; kind: "网页";
                 shortcut: root.is-macos ? "⌘ 5" : "Alt 5";
                 selected: root.selected-index == 4;
                 choose => { root.selected-index = 4; input.focus(); }
             }
             ResultRow {
-                icon: @image-url("icons/calculator.svg"); icon-background: #34304a;
+                icon: @image-url("icons/calculator.svg"); icon-background: #f1ecfb;
                 title: "计算器"; subtitle: "快速计算 · 输入表达式即可开始"; kind: "工具";
                 shortcut: root.is-macos ? "⌘ 6" : "Alt 6";
                 selected: root.selected-index == 5;
@@ -205,17 +206,17 @@ export component AppWindow inherits Window {
             }
             }
         }
-        Rectangle { x: 1px; y: 308px; width: 718px; height: 1px; background: #30343f; }
+        Rectangle { x: 1px; y: 308px; width: 718px; height: 1px; background: Theme.divider; }
         Image { x: 22px; y: 321px; width: 16px; height: 16px; source: @image-url("icons/flow.svg"); }
-        Text { x: 45px; y: 317px; width: 42px; height: 25px; text: "Flow"; color: #bcc6da; font-size: 12px; font-weight: 600; vertical-alignment: center; }
-        Text { x: 88px; y: 317px; width: 230px; height: 25px; text: root.shortcut-text + " · 唤起 / 隐藏"; color: #8b94a5; font-size: 11px; vertical-alignment: center; }
+        Text { x: 45px; y: 317px; width: 42px; height: 25px; text: "Flow"; color: Theme.text; font-size: 12px; font-weight: 600; vertical-alignment: center; }
+        Text { x: 88px; y: 317px; width: 230px; height: 25px; text: root.shortcut-text + " · 唤起 / 隐藏"; color: Theme.secondary; font-size: 11px; vertical-alignment: center; }
         KeyCap { x: 397px; y: 319px; label: "↑"; }
         KeyCap { x: 427px; y: 319px; label: "↓"; }
-        Text { x: 460px; y: 317px; width: 38px; height: 25px; text: "选择"; color: #8b94a5; font-size: 11px; vertical-alignment: center; }
+        Text { x: 460px; y: 317px; width: 38px; height: 25px; text: "选择"; color: Theme.secondary; font-size: 11px; vertical-alignment: center; }
         KeyCap { x: 509px; y: 319px; enter-icon: true; }
-        Text { x: 542px; y: 317px; width: 38px; height: 25px; text: "打开"; color: #8b94a5; font-size: 11px; vertical-alignment: center; }
+        Text { x: 542px; y: 317px; width: 38px; height: 25px; text: "打开"; color: Theme.secondary; font-size: 11px; vertical-alignment: center; }
         KeyCap { x: 591px; y: 319px; width: 47px; label: root.is-macos ? "⌘ K" : "Ctrl K"; }
-        Text { x: 646px; y: 317px; width: 50px; height: 25px; text: "操作"; color: #8b94a5; font-size: 11px; vertical-alignment: center; }
+        Text { x: 646px; y: 317px; width: 50px; height: 25px; text: "操作"; color: Theme.secondary; font-size: 11px; vertical-alignment: center; }
     }
-    init => { Palette.color-scheme = ColorScheme.dark; input.focus(); }
+    init => { Palette.color-scheme = ColorScheme.light; input.focus(); }
 }

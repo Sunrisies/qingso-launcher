@@ -2,7 +2,7 @@
 
 基于 Rust + Slint 的桌面启动器界面原型，参考 Flow Launcher 的搜索框与结果列表布局。
 
-当前实现深色无边框窗口、搜索输入框、分类标签、六条静态示例结果、选中与悬停状态、SVG 图标及基础启动器交互。上下方向键可选择结果，选中项自动滚动到可见区域；点击结果也可选择。分类切换、实际搜索和应用启动尚未接入，Enter、Alt / ⌘ 数字及 Ctrl / ⌘ K 仍是视觉提示。
+当前实现浅色无边框窗口、搜索输入框、分类标签、六条静态示例结果、选中与悬停状态、SVG 图标及基础启动器交互。上下方向键可选择结果，选中项自动滚动到可见区域；点击结果也可选择。分类切换、实际搜索和应用启动尚未接入，Enter、Alt / ⌘ 数字及 Ctrl / ⌘ K 仍是视觉提示。
 
 结果区最多同时显示三条，每条 54 逻辑像素。内容超过三条时自动显示垂直滚动条，可通过鼠标滚轮、触控板或拖动滚动条查看其余结果；三条及以下不显示滚动条。窗口逻辑尺寸为 760 × 386。
 
@@ -14,7 +14,7 @@
 cargo run
 ```
 
-Windows 和 macOS 使用同一套 Slint 界面。Windows 使用 Segoe UI 和 Alt / Ctrl 标识；macOS 使用 Helvetica Neue 和 ⌘ 标识，终端及系统设置名称也会随平台变化。当前在 Windows 完成构建及实际渲染检查，macOS 仍需在 Mac 上验证构建、字体和窗口表现。当前深色背景为实色，不依赖系统毛玻璃 API。
+Windows 和 macOS 使用同一套 Slint 界面。Windows 使用 Segoe UI 和 Alt / Ctrl 标识；macOS 使用 Helvetica Neue 和 ⌘ 标识，终端及系统设置名称也会随平台变化。当前在 Windows 完成构建及实际渲染检查，macOS 仍需在 Mac 上验证构建、字体和窗口表现。当前浅色背景为实色，不依赖系统毛玻璃 API。
 
 ## 快捷键和窗口行为
 
@@ -54,6 +54,7 @@ cargo run
 - `src/settings.rs`：设置窗、托盘菜单和快捷键保存回调。
 - `src/config.rs`：用户配置读取和原子替换保存。
 - `ui/settings-window.slint`：设置页与原生系统托盘菜单。
+- `ui/theme.slint`：统一浅色配色，供搜索框、设置页和启动提示窗口使用。
 - `src/window_placement.rs`：等待原生窗口尺寸就绪后，在窗口所在屏幕居中；使用物理像素和屏幕原点处理缩放及副屏坐标。
 - `examples/render-preview.rs`：从 Slint 渲染器导出 BMP，用于检查真实布局。
 - `preview.png`：Windows 环境下的界面预览。

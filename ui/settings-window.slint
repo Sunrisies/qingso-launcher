@@ -1,9 +1,10 @@
+import { Theme } from "theme.slint";
 import { Button, LineEdit, Palette } from "std-widgets.slint";
 
 export component SettingsWindow inherits Window {
     title: "Flow · 设置";
     width: 660px; height: 550px;
-    background: #1c1f27;
+    background: Theme.canvas;
     in property <bool> is-macos: false;
     default-font-family: root.is-macos ? "Helvetica Neue" : "Segoe UI";
     in property <string> app-version;
@@ -15,33 +16,33 @@ export component SettingsWindow inherits Window {
     in-out property <bool> status-error: false;
     callback save-shortcut(string);
 
-    Text { x: 28px; y: 26px; text: "设置"; font-size: 26px; font-weight: 700; color: #edf0f6; }
-    Text { x: 28px; y: 64px; text: "让 Flow 按你的习惯工作"; font-size: 13px; color: #8994a8; }
+    Text { x: 28px; y: 26px; text: "设置"; font-size: 26px; font-weight: 700; color: Theme.text; }
+    Text { x: 28px; y: 64px; text: "让 Flow 按你的习惯工作"; font-size: 13px; color: Theme.secondary; }
     Rectangle {
         x: 24px; y: 104px; width: 612px; height: 162px;
-        background: #242832; border-radius: 12px; border-width: 1px; border-color: #353c4b;
+        background: Theme.surface; border-radius: 12px; border-width: 1px; border-color: Theme.border;
         Image { x: 20px; y: 22px; width: 38px; height: 38px; source: @image-url("icons/tray.svg"); }
-        Text { x: 74px; y: 23px; text: "Flow Launcher"; color: #edf0f6; font-size: 18px; font-weight: 600; }
-        Text { x: 74px; y: 49px; text: "Rust + Slint · 桌面启动器"; color: #8e99ad; font-size: 12px; }
-        Rectangle { x: 20px; y: 80px; width: 572px; height: 1px; background: #363d4b; }
-        Text { x: 20px; y: 100px; text: "软件版本"; color: #8e99ad; font-size: 12px; }
-        Text { x: 110px; y: 100px; text: root.app-version; color: #dce3f0; font-size: 12px; }
-        Text { x: 20px; y: 127px; text: "运行平台"; color: #8e99ad; font-size: 12px; }
-        Text { x: 110px; y: 127px; text: root.platform-text; color: #dce3f0; font-size: 12px; }
+        Text { x: 74px; y: 23px; text: "Flow Launcher"; color: Theme.text; font-size: 18px; font-weight: 600; }
+        Text { x: 74px; y: 49px; text: "Rust + Slint · 桌面启动器"; color: Theme.secondary; font-size: 12px; }
+        Rectangle { x: 20px; y: 80px; width: 572px; height: 1px; background: Theme.divider; }
+        Text { x: 20px; y: 100px; text: "软件版本"; color: Theme.secondary; font-size: 12px; }
+        Text { x: 110px; y: 100px; text: root.app-version; color: Theme.text; font-size: 12px; }
+        Text { x: 20px; y: 127px; text: "运行平台"; color: Theme.secondary; font-size: 12px; }
+        Text { x: 110px; y: 127px; text: root.platform-text; color: Theme.text; font-size: 12px; }
     }
     Rectangle {
         x: 24px; y: 286px; width: 612px; height: 178px;
-        background: #242832; border-radius: 12px; border-width: 1px; border-color: #353c4b;
-        Text { x: 20px; y: 18px; text: "全局快捷键"; color: #edf0f6; font-size: 15px; font-weight: 600; }
-        Text { x: 20px; y: 43px; text: "当前：" + root.current-hotkey + "  ·  显示 / 隐藏搜索框"; color: #8e99ad; font-size: 12px; }
+        background: Theme.surface; border-radius: 12px; border-width: 1px; border-color: Theme.border;
+        Text { x: 20px; y: 18px; text: "全局快捷键"; color: Theme.text; font-size: 15px; font-weight: 600; }
+        Text { x: 20px; y: 43px; text: "当前：" + root.current-hotkey + "  ·  显示 / 隐藏搜索框"; color: Theme.secondary; font-size: 12px; }
         LineEdit { x: 20px; y: 69px; width: 386px; height: 38px; text <=> root.edited-hotkey; placeholder-text: "例如 Ctrl+Alt+Space"; accepted(value) => { root.save-shortcut(value); } }
         Button { x: 422px; y: 69px; width: 170px; height: 38px; text: "保存快捷键"; primary: true; clicked => { root.save-shortcut(root.edited-hotkey); } }
-        Text { x: 20px; y: 118px; text: "示例：Alt+Space、Ctrl+Alt+Space、Super+Space（macOS）"; color: #78869d; font-size: 11px; }
-        Text { x: 20px; y: 145px; width: 572px; height: 20px; text: root.status-message; color: root.status-error ? #f4a59b : #9cc7b0; font-size: 12px; overflow: elide; }
+        Text { x: 20px; y: 118px; text: "示例：Alt+Space、Ctrl+Alt+Space、Super+Space（macOS）"; color: Theme.muted; font-size: 11px; }
+        Text { x: 20px; y: 145px; width: 572px; height: 20px; text: root.status-message; color: root.status-error ? Theme.error : Theme.success; font-size: 12px; overflow: elide; }
     }
-    Text { x: 28px; y: 485px; text: "设置保存至"; color: #78869d; font-size: 11px; }
-    Text { x: 28px; y: 506px; width: 608px; height: 20px; text: root.config-path; color: #98a6bb; font-size: 11px; overflow: elide; }
-    init => { Palette.color-scheme = ColorScheme.dark; }
+    Text { x: 28px; y: 485px; text: "设置保存至"; color: Theme.muted; font-size: 11px; }
+    Text { x: 28px; y: 506px; width: 608px; height: 20px; text: root.config-path; color: Theme.secondary; font-size: 11px; overflow: elide; }
+    init => { Palette.color-scheme = ColorScheme.light; }
 }
 
 export component LauncherTray inherits SystemTrayIcon {
