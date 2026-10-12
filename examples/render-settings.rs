@@ -31,7 +31,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let config = std::env::var_os("APPDATA")
         .map(std::path::PathBuf::from)
         .unwrap_or_else(std::env::temp_dir)
-        .join("FlowLauncherPreview/hotkey.txt");
+        .join("QingsoLauncher/hotkey.txt");
     ui.set_config_path(config.to_string_lossy().into_owned().into());
     ui.show()?;
     if dialog_page {

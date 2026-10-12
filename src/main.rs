@@ -18,7 +18,7 @@ slint::include_modules!();
 fn main() {
     if let Err(error) = run() {
         let message = format!(
-            "启动失败：{error}\n\n如果快捷键被占用，请关闭其他启动器，或通过 FLOW_HOTKEY 指定其他快捷键。"
+            "启动失败：{error}\n\n如果快捷键被占用，请关闭其他启动器，或通过 QINGSO_HOTKEY 指定其他快捷键。"
         );
         eprintln!("{message}");
         if let Ok(dialog) = StartupErrorWindow::new() {

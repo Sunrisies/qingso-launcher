@@ -70,7 +70,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         std::env::temp_dir().join(format!("flow-settings-check-{}", std::process::id()));
     // Set the isolated test profile before initializing any background threads.
     unsafe {
-        std::env::set_var("FLOW_CONFIG_DIR", &directory);
+        std::env::set_var("QINGSO_CONFIG_DIR", &directory);
     }
     launcher::configure_backend()?;
     let ui = AppWindow::new()?;

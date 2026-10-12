@@ -1,6 +1,8 @@
-# Flow 风格跨平台启动器
+# 轻搜（Qingso Launcher）
 
 基于 Rust + Slint 的桌面启动器界面原型，参考 Flow Launcher 的搜索框与结果列表布局。
+
+正式软件名称为“轻搜”，Cargo 包名为 `qingso-launcher`，Windows 程序为 `qingso-launcher.exe`。
 
 当前实现浅色无边框窗口、搜索输入框、分类标签、六条静态示例结果、选中与悬停状态、SVG 图标及基础启动器交互。上下方向键可选择结果，选中项自动滚动到可见区域；点击结果也可选择。网站标签搜索已接入，匹配标签时按 Enter 可打开搜索结果。应用 / 文件搜索、分类切换及应用启动仍未接入，Alt / ⌘ 数字及 Ctrl / ⌘ K 仍是视觉提示。
 
@@ -34,15 +36,27 @@ Windows 和 macOS 使用同一套 Slint 界面。Windows 使用 Segoe UI 和 Alt
 也可在 PowerShell 中指定快捷键：
 
 ```powershell
-$env:FLOW_HOTKEY = 'Ctrl+Alt+Space'
+$env:QINGSO_HOTKEY = 'Ctrl+Alt+Space'
 cargo run
 ```
 
-主动指定的快捷键无法注册时返回启动错误，不会偷偷更换为其他快捷键。默认两个快捷键都被占用时，也需要通过 `FLOW_HOTKEY` 指定其他组合。
+主动指定的快捷键无法注册时返回启动错误，不会偷偷更换为其他快捷键。默认两个快捷键都被占用时，也需要通过 `QINGSO_HOTKEY` 指定其他组合。
 
-启动时按 `FLOW_HOTKEY` 环境变量、设置页保存值、默认组合的顺序选择快捷键。Windows 默认保存到 `%APPDATA%/FlowLauncherPreview/hotkey.txt`，macOS 保存到 `~/Library/Application Support/FlowLauncherPreview/hotkey.txt`。也可用 `FLOW_CONFIG_DIR` 指定独立配置目录。
+启动时按 `QINGSO_HOTKEY` 环境变量、设置页保存值、默认组合的顺序选择快捷键。Windows 默认保存到 `%APPDATA%/QingsoLauncher/hotkey.txt`，macOS 保存到 `~/Library/Application Support/QingsoLauncher/hotkey.txt`。也可用 `QINGSO_CONFIG_DIR` 指定独立配置目录。
 
 启动失败时会弹出具体错误信息。Windows 的后台子系统不创建控制台，因此错误窗口可避免只看到 Cargo 的 `exit code: 1`。
+
+改名后的首次启动会把旧 `FlowLauncherPreview` 中的快捷键和搜索标签复制到 `QingsoLauncher`，保留旧文件且不覆盖新目录中的已有配置。旧环境变量 `FLOW_HOTKEY`、`FLOW_CONFIG_DIR` 继续兼容，新环境变量 `QINGSO_HOTKEY`、`QINGSO_CONFIG_DIR` 优先。
+
+## 发布构建
+
+```sh
+cargo build --release
+```
+
+发布配置使用 `opt-level = "s"`、`strip = "symbols"`、LTO 和单代码生成单元优化体积，保留现有 Slint 渲染器、托盘和无障碍功能。分发时仅包含发布版程序及必要说明文件，避免打包整个 Cargo target 目录。当前环境的构建目录由全局 Cargo 设置指向 `E:/rust/cargo-target`。
+
+本次 Windows x64 实测：发布程序从 13.41 MiB 降至 11.05 MiB（约减少 18%）；`dist/qingso-launcher-windows-x64-v0.1.0.zip` 为 5.40 MiB，包含程序及使用说明。升级前请从托盘退出旧版，再启动新的轻搜。
 
 ## 搜索标签
 

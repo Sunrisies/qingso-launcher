@@ -9,6 +9,7 @@ use std::{
     time::Duration,
 };
 
+// Preserve the legacy IPC identity so older and renamed builds cannot run twice.
 const APP_ID: &str = "hover-flow-launcher-4fc9e1b8";
 
 pub struct Instance {

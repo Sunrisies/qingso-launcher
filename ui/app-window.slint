@@ -4,7 +4,7 @@ import { ScrollView, Palette } from "std-widgets.slint";
 export { SettingsWindow, LauncherTray, SearchTagEntry } from "settings-window.slint";
 
 export component StartupErrorWindow inherits Window {
-    title: "Flow · 启动失败";
+    title: "轻搜 · 启动失败";
     width: 520px; height: 190px;
     background: Theme.surface;
     in property <string> message;
@@ -81,7 +81,7 @@ component ResultRow inherits Rectangle {
     hover := TouchArea { clicked => { root.choose(); } }
 }
 export component AppWindow inherits Window {
-    title: "Flow · Launcher Preview";
+    title: "轻搜 · 搜索";
     width: 760px; height: 386px;
     no-frame: true; background: transparent;
     default-font-family: root.is-macos ? "Helvetica Neue" : "Segoe UI";
@@ -230,7 +230,7 @@ export component AppWindow inherits Window {
         }
         Rectangle { x: 1px; y: 308px; width: 718px; height: 1px; background: Theme.divider; }
         Image { x: 22px; y: 321px; width: 16px; height: 16px; source: @image-url("icons/flow.svg"); }
-        Text { x: 45px; y: 317px; width: 42px; height: 25px; text: "Flow"; color: Theme.text; font-size: 12px; font-weight: 600; vertical-alignment: center; }
+        Text { x: 45px; y: 317px; width: 42px; height: 25px; text: "轻搜"; color: Theme.text; font-size: 12px; font-weight: 600; vertical-alignment: center; }
         Text { x: 88px; y: 317px; width: 230px; height: 25px; text: root.shortcut-text + " · 唤起 / 隐藏"; color: Theme.secondary; font-size: 11px; vertical-alignment: center; }
         KeyCap { x: 397px; y: 319px; label: "↑"; }
         KeyCap { x: 427px; y: 319px; label: "↓"; }

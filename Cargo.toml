@@ -1,5 +1,6 @@
 [package]
-name = "slint-rust-template"
+name = "qingso-launcher"
+description = "轻搜：支持全局快捷键和自定义网站标签的跨平台启动器"
 version = "0.1.0"
 edition = "2024"
 
@@ -19,5 +20,7 @@ webbrowser = "1.2.4"
 slint-build = "1.18.1"
 
 [profile.release]
+opt-level = "s"
+strip = "symbols"
 codegen-units = 1
 lto = true

@@ -1,7 +1,9 @@
 use std::{io, path::PathBuf};
 
 pub fn path() -> io::Result<PathBuf> {
-    if let Some(directory) = std::env::var_os("FLOW_CONFIG_DIR") {
+    if let Some(directory) =
+        std::env::var_os("QINGSO_CONFIG_DIR").or_else(|| std::env::var_os("FLOW_CONFIG_DIR"))
+    {
         return Ok(PathBuf::from(directory).join("hotkey.txt"));
     }
     #[cfg(windows)]
@@ -18,7 +20,24 @@ pub fn path() -> io::Result<PathBuf> {
         .map(PathBuf::from)
         .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".config")))
         .ok_or_else(|| io::Error::other("Configuration directory is unavailable"))?;
-    Ok(base.join("FlowLauncherPreview").join("hotkey.txt"))
+    migrate_legacy(&base)
+}
+
+fn migrate_legacy(base: &std::path::Path) -> io::Result<PathBuf> {
+    let folder = base.join("QingsoLauncher");
+    let legacy = base.join("FlowLauncherPreview");
+    for name in ["hotkey.txt", "search-tags.json"] {
+        let target = folder.join(name);
+        if target.exists() {
+            continue;
+        }
+        match std::fs::read(legacy.join(name)) {
+            Ok(bytes) => write_atomic(&target, &bytes)?,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error),
+        }
+    }
+    Ok(folder.join("hotkey.txt"))
 }
 
 pub fn load() -> io::Result<Option<String>> {
@@ -62,5 +81,40 @@ pub fn write_atomic(path: &std::path::Path, content: &[u8]) -> io::Result<()> {
     #[cfg(not(windows))]
     {
         std::fs::rename(temporary, path)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn legacy_settings_copy_without_overwriting_new_values() {
+        let base = std::env::temp_dir().join(format!("qingso-migration-{}", std::process::id()));
+        let old = base.join("FlowLauncherPreview");
+        let new = base.join("QingsoLauncher");
+        std::fs::create_dir_all(&old).unwrap();
+        std::fs::write(old.join("hotkey.txt"), "Ctrl+Alt+Space\n").unwrap();
+        std::fs::write(old.join("search-tags.json"), "[]").unwrap();
+        assert_eq!(migrate_legacy(&base).unwrap(), new.join("hotkey.txt"));
+        assert_eq!(
+            std::fs::read_to_string(new.join("search-tags.json")).unwrap(),
+            "[]"
+        );
+        std::fs::write(new.join("hotkey.txt"), "Alt+F12\n").unwrap();
+        migrate_legacy(&base).unwrap();
+        assert_eq!(
+            std::fs::read_to_string(new.join("hotkey.txt")).unwrap(),
+            "Alt+F12\n"
+        );
+        assert_eq!(
+            std::fs::read_to_string(old.join("hotkey.txt")).unwrap(),
+            "Ctrl+Alt+Space\n"
+        );
+        for folder in [old, new] {
+            std::fs::remove_file(folder.join("hotkey.txt")).unwrap();
+            std::fs::remove_file(folder.join("search-tags.json")).unwrap();
+            std::fs::remove_dir(folder).unwrap();
+        }
+        std::fs::remove_dir(base).unwrap();
     }
 }

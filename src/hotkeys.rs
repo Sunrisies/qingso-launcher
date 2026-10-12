@@ -68,7 +68,8 @@ impl Registration {
 
 pub fn register(ui: &AppWindow) -> Result<Registration, Box<dyn Error>> {
     let manager = GlobalHotKeyManager::new()?;
-    let configured = match std::env::var("FLOW_HOTKEY") {
+    let configured = match std::env::var("QINGSO_HOTKEY").or_else(|_| std::env::var("FLOW_HOTKEY"))
+    {
         Ok(value) => Some(value),
         Err(_) => config::load()?,
     };
@@ -83,7 +84,7 @@ pub fn register(ui: &AppWindow) -> Result<Registration, Box<dyn Error>> {
         }
         Err(error) => {
             return Err(std::io::Error::other(format!(
-                "Cannot register {shortcut}: {error}. Set FLOW_HOTKEY to another shortcut."
+                "Cannot register {shortcut}: {error}. Set QINGSO_HOTKEY to another shortcut."
             ))
             .into());
         }
