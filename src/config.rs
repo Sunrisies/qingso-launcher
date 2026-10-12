@@ -32,11 +32,15 @@ pub fn load() -> io::Result<Option<String>> {
 
 pub fn save(value: &str) -> io::Result<()> {
     let path = path()?;
+    write_atomic(&path, format!("{}\n", value.trim()).as_bytes())
+}
+
+pub fn write_atomic(path: &std::path::Path, content: &[u8]) -> io::Result<()> {
     std::fs::create_dir_all(path.parent().unwrap())?;
     let temporary = path.with_extension("txt.tmp");
     use std::io::Write;
     let mut file = std::fs::File::create(&temporary)?;
-    file.write_all(format!("{}\n", value.trim()).as_bytes())?;
+    file.write_all(content)?;
     file.sync_all()?;
     drop(file);
     #[cfg(windows)]

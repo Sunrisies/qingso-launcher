@@ -12,6 +12,10 @@ mod config;
 mod hotkeys;
 #[path = "../src/launcher.rs"]
 mod launcher;
+#[path = "../src/search.rs"]
+mod search;
+#[path = "../src/search_tags.rs"]
+mod search_tags;
 #[path = "../src/settings.rs"]
 mod settings;
 #[path = "../src/window_placement.rs"]

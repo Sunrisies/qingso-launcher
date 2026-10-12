@@ -8,6 +8,8 @@ mod config;
 mod hotkeys;
 mod instance;
 mod launcher;
+mod search;
+mod search_tags;
 mod settings;
 mod window_placement;
 

@@ -2,7 +2,7 @@
 
 基于 Rust + Slint 的桌面启动器界面原型，参考 Flow Launcher 的搜索框与结果列表布局。
 
-当前实现浅色无边框窗口、搜索输入框、分类标签、六条静态示例结果、选中与悬停状态、SVG 图标及基础启动器交互。上下方向键可选择结果，选中项自动滚动到可见区域；点击结果也可选择。分类切换、实际搜索和应用启动尚未接入，Enter、Alt / ⌘ 数字及 Ctrl / ⌘ K 仍是视觉提示。
+当前实现浅色无边框窗口、搜索输入框、分类标签、六条静态示例结果、选中与悬停状态、SVG 图标及基础启动器交互。上下方向键可选择结果，选中项自动滚动到可见区域；点击结果也可选择。网站标签搜索已接入，匹配标签时按 Enter 可打开搜索结果。应用 / 文件搜索、分类切换及应用启动仍未接入，Alt / ⌘ 数字及 Ctrl / ⌘ K 仍是视觉提示。
 
 结果区最多同时显示三条，每条 54 逻辑像素。内容超过三条时自动显示垂直滚动条，可通过鼠标滚轮、触控板或拖动滚动条查看其余结果；三条及以下不显示滚动条。窗口逻辑尺寸为 760 × 386。
 
@@ -43,6 +43,21 @@ cargo run
 
 启动失败时会弹出具体错误信息。Windows 的后台子系统不创建控制台，因此错误窗口可避免只看到 Cargo 的 `exit code: 1`。
 
+## 搜索标签
+
+在“设置 → 搜索标签”中添加、编辑或删除网站搜索标签。内置 `b` 对应百度、`n` 对应 npm：
+
+```text
+b Rust 中文教程
+n @slint-ui/slint-ui
+```
+
+搜索框使用“标签 + 空格 + 搜索内容”。匹配后显示网站名称，按 Enter 或点击对应结果，用默认浏览器打开网址，成功后隐藏搜索框。空内容、未知标签和浏览器调用失败会显示原因。
+
+每个标签包含标签、网站名称和网址模板，模板中必须包含 `{query}`。例如百度为 `https://www.baidu.com/s?wd={query}`，npm 为 `https://www.npmjs.com/search?q={query}`。标签不区分大小写，不允许重复；搜索内容会做网址编码，支持中文、空格和特殊字符。网址支持 http / https。
+
+配置保存到与快捷键文件同目录的 `search-tags.json`，修改立即生效并在下次启动恢复。删除全部标签后保持空列表，不会重新自动添加默认标签。
+
 ## 文件
 
 - `ui/app-window.slint`：窗口、搜索区、结果行及快捷键组件。
@@ -55,6 +70,8 @@ cargo run
 - `src/config.rs`：用户配置读取和原子替换保存。
 - `ui/settings-window.slint`：设置页与原生系统托盘菜单。
 - `ui/theme.slint`：统一浅色配色，供搜索框、设置页和启动提示窗口使用。
+- `src/search_tags.rs`：标签校验、持久化、输入匹配和网址生成。
+- `src/search.rs`：设置标签回调、搜索提示和默认浏览器打开。
 - `src/window_placement.rs`：等待原生窗口尺寸就绪后，在窗口所在屏幕居中；使用物理像素和屏幕原点处理缩放及副屏坐标。
 - `examples/render-preview.rs`：从 Slint 渲染器导出 BMP，用于检查真实布局。
 - `preview.png`：Windows 环境下的界面预览。
@@ -68,6 +85,8 @@ cargo run --example render-preview -- preview.bmp
 cargo run --example interaction-check
 cargo run --example settings-check
 cargo run --example render-settings
+cargo run --example render-settings -- tags
+cargo run --example search-check
 ```
 
 预览导出会短暂显示窗口，再自动关闭。它使用系统缩放比例，输出图像尺寸可能大于 760 × 386 的逻辑窗口尺寸。
@@ -75,3 +94,5 @@ cargo run --example render-settings
 交互检查会注册快捷键并短暂显示测试窗口，验证上下键边界、自动滚动、Esc 隐藏、后台循环、重复切换以及原生失焦隐藏。Windows 下还向测试进程自己的快捷键管理窗口注入消息，验证原生快捷键消息到 Slint 显示切换的链路。该检查应在实际启动器退出后运行。
 
 设置检查使用独立临时配置目录，验证原生托盘创建、打开窗口、快捷键格式与占用错误、保存失败保护、热更新、重新读取配置和托盘退出。`settings-preview.png` 为设置界面的实际渲染预览。
+
+搜索检查使用独立配置目录和捕获网址的浏览器替身，验证真实 Enter 回调、默认标签、添加 / 编辑 / 删除即时生效及持久化、网址编码和错误反馈，不会实际打开浏览器。`tags-preview.png` 为标签页预览。

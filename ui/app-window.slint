@@ -1,7 +1,7 @@
 import { Theme } from "theme.slint";
 // Static design preview. Sample results do not perform searches or launch apps.
 import { ScrollView, Palette } from "std-widgets.slint";
-export { SettingsWindow, LauncherTray } from "settings-window.slint";
+export { SettingsWindow, LauncherTray, SearchTagEntry } from "settings-window.slint";
 
 export component StartupErrorWindow inherits Window {
     title: "Flow · 启动失败";
@@ -89,7 +89,15 @@ export component AppWindow inherits Window {
     in-out property <string> query-text: "";
     in-out property <length> results-scroll-y <=> results-scroll.content-y;
     in-out property <int> selected-index: 0;
-    in property <int> result-count: 6;
+    in property <int> result-count: root.web-search-active ? 1 : 6;
+    in-out property <bool> web-search-active: false;
+    in-out property <string> web-search-title;
+    in-out property <string> web-search-description;
+    in-out property <string> query-hint;
+    in-out property <bool> query-error: false;
+    callback query-submitted(string);
+    callback query-changed(string);
+    changed query-text => { root.query-changed(root.query-text); }
     in property <string> shortcut-text: "Alt + Space";
     callback close-requested();
     callback quit-requested();
@@ -120,6 +128,7 @@ export component AppWindow inherits Window {
             vertical-alignment: center; single-line: true;
             selection-background-color: #c8ddff;
             selection-foreground-color: Theme.text;
+            accepted => { root.query-submitted(root.query-text); }
             key-pressed(event) => {
                 if event.text == Key.Escape { root.close-requested(); return accept; }
                 if event.text == Key.UpArrow { root.move-selection(-1); return accept; }
@@ -140,7 +149,7 @@ export component AppWindow inherits Window {
             dismiss := TouchArea { clicked => { root.close-requested(); } }
         }
         Rectangle { x: 1px; y: 84px; width: 718px; height: 1px; background: Theme.divider; }
-        HorizontalLayout {
+        if root.query-hint == "" : HorizontalLayout {
             x: 20px; y: 96px; width: 302px; height: 27px; spacing: 5px;
             Category { label: "全部"; selected: true; }
             Category { label: "应用"; }
@@ -150,10 +159,12 @@ export component AppWindow inherits Window {
         }
         Text {
             x: 590px; y: 96px; width: 103px; height: 27px;
+            visible: root.query-hint == "";
             text: "推荐 · 6 项"; color: Theme.muted; font-size: 11px;
             horizontal-alignment: right; vertical-alignment: center;
         }
         results-scroll := ScrollView {
+            visible: !root.web-search-active;
             x: 12px; y: 134px; width: 696px; height: 162px;
             horizontal-scrollbar-policy: always-off;
             vertical-scrollbar-policy: as-needed;
@@ -205,6 +216,17 @@ export component AppWindow inherits Window {
                 choose => { root.selected-index = 5; input.focus(); }
             }
             }
+        }
+        if root.query-hint != "" : Text {
+            x: 24px; y: 96px; width: 672px; height: 27px;
+            text: root.query-hint; color: root.query-error ? Theme.error : Theme.secondary; font-size: 12px;
+            vertical-alignment: center; overflow: elide;
+        }
+        if root.web-search-active : ResultRow {
+            x: 12px; y: 134px; width: 680px;
+            icon: @image-url("icons/globe.svg"); icon-background: #e9f2fd;
+            title: root.web-search-title; subtitle: root.web-search-description; kind: "网页"; selected: true;
+            choose => { root.query-submitted(root.query-text); }
         }
         Rectangle { x: 1px; y: 308px; width: 718px; height: 1px; background: Theme.divider; }
         Image { x: 22px; y: 321px; width: 16px; height: 16px; source: @image-url("icons/flow.svg"); }

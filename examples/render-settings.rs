@@ -10,6 +10,23 @@ fn main() -> Result<(), Box<dyn Error>> {
     ui.set_platform_text(format!("{} · {}", std::env::consts::OS, std::env::consts::ARCH).into());
     ui.set_current_hotkey("Ctrl+Alt+Space".into());
     ui.set_edited_hotkey("Ctrl+Alt+Space".into());
+    let tags_page = std::env::args().nth(1).as_deref() == Some("tags");
+    ui.set_show_search_tags(tags_page);
+    ui.set_search_tags(
+        std::rc::Rc::new(slint::VecModel::from(vec![
+            SearchTagEntry {
+                keyword: "b".into(),
+                name: "百度".into(),
+                url_template: "https://www.baidu.com/s?wd={query}".into(),
+            },
+            SearchTagEntry {
+                keyword: "n".into(),
+                name: "npm".into(),
+                url_template: "https://www.npmjs.com/search?q={query}".into(),
+            },
+        ]))
+        .into(),
+    );
     let config = std::env::var_os("APPDATA")
         .map(std::path::PathBuf::from)
         .unwrap_or_else(std::env::temp_dir)
@@ -21,7 +38,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         let ui = weak.upgrade().unwrap();
         let pixels = ui.window().take_snapshot().unwrap();
         let (width, height) = (pixels.width(), pixels.height());
-        let mut file = std::fs::File::create("settings-preview.bmp").unwrap();
+        let mut file = std::fs::File::create(if tags_page {
+            "tags-preview.bmp"
+        } else {
+            "settings-preview.bmp"
+        })
+        .unwrap();
         file.write_all(b"BM").unwrap();
         file.write_all(&(54 + width * height * 4).to_le_bytes())
             .unwrap();

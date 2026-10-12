@@ -44,6 +44,11 @@ pub fn create(
             }
         }
     });
+    crate::search::bind(
+        ui,
+        &settings,
+        Rc::new(RefCell::new(crate::search_tags::Store::load()?)),
+    );
     Ok(settings)
 }
 
