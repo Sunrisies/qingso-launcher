@@ -10,7 +10,7 @@ thread_local! {
 }
 
 pub fn configure_backend() -> Result<(), slint::PlatformError> {
-    let backend = slint::BackendSelector::new()
+    let mut backend = slint::BackendSelector::new()
         .backend_name("winit".into())
         .with_winit_window_attributes_hook(|attributes| {
             let attributes = attributes.with_theme(Some(winit::window::Theme::Light));
@@ -24,6 +24,13 @@ pub fn configure_backend() -> Result<(), slint::PlatformError> {
                 attributes
             }
         });
+    // This launcher is mostly static UI: software avoids initializing GPU
+    // driver contexts. Retain an explicit GPU override for animated workloads.
+    if let Ok(renderer) = std::env::var("QINGSO_RENDERER") {
+        backend = backend.renderer_name(renderer);
+    } else if std::env::var_os("SLINT_BACKEND").is_none() {
+        backend = backend.renderer_name("software".into());
+    }
     #[cfg(target_os = "macos")]
     let backend = {
         use winit::platform::macos::{ActivationPolicy, EventLoopBuilderExtMacOS};

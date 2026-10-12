@@ -1,5 +1,5 @@
 import { Theme } from "theme.slint";
-import { LineEdit, Palette, ScrollView } from "std-widgets.slint";
+import { LineEdit, Palette, ScrollView, Switch } from "std-widgets.slint";
 
 export struct SearchTagEntry { keyword: string, name: string, url-template: string }
 
@@ -127,6 +127,11 @@ export component SettingsWindow inherits Window {
     in-out property <string> status-message: "保存后立即生效，下次启动自动恢复。";
     in-out property <bool> status-error: false;
     callback save-shortcut(string);
+    in-out property <bool> autostart-enabled: false;
+    in-out property <bool> autostart-available: true;
+    in-out property <string> autostart-status: "登录系统后自动在托盘运行，不弹出搜索框。";
+    in-out property <bool> autostart-error: false;
+    callback set-autostart(bool);
     in-out property <bool> show-search-tags: false;
     in property <[SearchTagEntry]> search-tags;
     in-out property <int> editing-tag-index: -1;
@@ -172,20 +177,18 @@ export component SettingsWindow inherits Window {
         if !root.show-search-tags : Rectangle {
             width: parent.width; height: parent.height; background: transparent;
             Card {
-                x: 32px; y: 120px; width: parent.width - 64px; height: 174px;
+                x: 32px; y: 120px; width: parent.width - 64px; height: 148px;
                 Image { x: 24px; y: 24px; width: 42px; height: 42px; source: @image-url("icons/tray.svg"); }
                 Text { x: 82px; y: 23px; text: "轻搜"; font-size: 18px; font-weight: 600; color: Theme.text; }
                 Text { x: 82px; y: 51px; text: "桌面启动器"; font-size: 12px; color: Theme.muted; }
                 Rectangle { x: parent.width - 104px; y: 29px; width: 80px; height: 26px; border-radius: 6px; background: Theme.canvas;
                     Text { text: "v" + root.app-version; font-size: 11px; color: Theme.secondary; horizontal-alignment: center; vertical-alignment: center; } }
                 Rectangle { x: 24px; y: 88px; width: parent.width - 48px; height: 1px; background: Theme.divider; }
-                Text { x: 24px; y: 107px; text: "运行平台"; color: Theme.muted; font-size: 11px; }
-                Text { x: 24px; y: 131px; text: root.platform-text; color: Theme.text; font-size: 13px; }
-                Text { x: parent.width / 2; y: 107px; text: "搜索窗口"; color: Theme.muted; font-size: 11px; }
-                Text { x: parent.width / 2; y: 131px; text: "切换到其他窗口时自动隐藏"; color: Theme.text; font-size: 13px; }
+                Text { x: 24px; y: 110px; text: "运行平台"; color: Theme.muted; font-size: 11px; }
+                Text { x: 100px; y: 107px; text: root.platform-text; color: Theme.text; font-size: 13px; }
             }
             Card {
-                x: 32px; y: 318px; width: parent.width - 64px; height: 202px;
+                x: 32px; y: 290px; width: parent.width - 64px; height: 190px;
                 Text { x: 24px; y: 22px; text: "启动快捷键"; color: Theme.text; font-size: 16px; font-weight: 600; }
                 Text { x: 24px; y: 51px; text: "在任意应用中唤起或隐藏搜索框。"; color: Theme.secondary; font-size: 12px; }
                 Rectangle { x: parent.width - 202px; y: 24px; width: 178px; height: 28px; border-radius: 6px; background: Theme.selected;
@@ -195,8 +198,13 @@ export component SettingsWindow inherits Window {
                 Action { x: parent.width - 184px; y: 110px; width: 160px; height: 40px; text: "保存快捷键"; primary: true; clicked => { root.save-shortcut(root.edited-hotkey); } }
                 Text { x: 24px; y: 169px; width: parent.width - 48px; height: 20px; text: root.status-message; color: root.status-error ? Theme.error : Theme.success; font-size: 12px; overflow: elide; }
             }
-            Text { x: 56px; y: 548px; text: "配置文件"; color: Theme.muted; font-size: 11px; }
-            Text { x: 56px; y: 571px; width: parent.width - 112px; height: 38px; text: root.config-path; color: Theme.secondary; font-size: 11px; wrap: word-wrap; }
+            Card {
+                x: 32px; y: 502px; width: parent.width - 64px; height: 92px;
+                Text { x: 24px; y: 18px; text: "开机自启"; color: Theme.text; font-size: 15px; font-weight: 600; }
+                Text { x: 24px; y: 50px; width: parent.width - 120px; height: 32px; text: root.autostart-status; color: root.autostart-error ? Theme.error : Theme.secondary; font-size: 12px; wrap: word-wrap; }
+                Switch { x: parent.width - 80px; y: 21px; width: 56px; height: 28px; enabled: root.autostart-available; checked <=> root.autostart-enabled; toggled => { root.set-autostart(self.checked); } }
+            }
+            Text { x: 36px; y: 615px; width: parent.width - 72px; height: 30px; text: "配置文件：" + root.config-path; color: Theme.muted; font-size: 10px; wrap: word-wrap; }
         }
 
         if root.show-search-tags : Rectangle {

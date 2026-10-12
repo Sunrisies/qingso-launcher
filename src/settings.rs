@@ -17,6 +17,39 @@ pub fn create(
     settings.set_config_path(config::path()?.to_string_lossy().into_owned().into());
     settings.set_current_hotkey(registration.borrow().shortcut.clone().into());
     settings.set_edited_hotkey(registration.borrow().shortcut.clone().into());
+    match crate::autostart::is_enabled() {
+        Ok(enabled) => settings.set_autostart_enabled(enabled),
+        Err(error) => {
+            settings.set_autostart_available(false);
+            settings.set_autostart_status(format!("无法读取自启状态：{error}").into());
+            settings.set_autostart_error(true);
+        }
+    }
+    let weak = settings.as_weak();
+    settings.on_set_autostart(move |enabled| {
+        let Some(settings) = weak.upgrade() else {
+            return;
+        };
+        match crate::autostart::set_enabled(enabled) {
+            Ok(()) => {
+                settings.set_autostart_enabled(enabled);
+                settings.set_autostart_error(false);
+                settings.set_autostart_status(
+                    if enabled {
+                        "已开启，下次登录系统后在托盘运行。"
+                    } else {
+                        "已关闭开机自启。"
+                    }
+                    .into(),
+                );
+            }
+            Err(error) => {
+                settings.set_autostart_enabled(crate::autostart::is_enabled().unwrap_or(!enabled));
+                settings.set_autostart_error(true);
+                settings.set_autostart_status(format!("设置失败：{error}").into());
+            }
+        }
+    });
     let weak_settings = settings.as_weak();
     let weak_search = ui.as_weak();
     settings.on_save_shortcut(move |value| {

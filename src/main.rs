@@ -4,6 +4,7 @@
 use std::error::Error;
 use std::{cell::RefCell, rc::Rc};
 
+mod autostart;
 mod config;
 mod hotkeys;
 mod instance;
@@ -30,7 +31,8 @@ fn main() {
 }
 
 fn run() -> Result<(), Box<dyn Error>> {
-    let Some(instance) = instance::acquire()? else {
+    let login_start = std::env::args().skip(1).any(|arg| arg == "--autostart");
+    let Some(instance) = instance::acquire(!login_start)? else {
         return Ok(());
     };
     launcher::configure_backend()?;
@@ -44,7 +46,9 @@ fn run() -> Result<(), Box<dyn Error>> {
     let tray = LauncherTray::new()?;
     settings::bind_tray(&tray, &ui, &preferences);
     instance.listen(ui.as_weak())?;
-    launcher::show(&ui)?;
+    if !login_start {
+        launcher::show(&ui)?;
+    }
     slint::run_event_loop_until_quit()?;
 
     Ok(())

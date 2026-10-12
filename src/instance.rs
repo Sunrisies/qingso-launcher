@@ -32,7 +32,7 @@ fn socket_name() -> io::Result<Name<'static>> {
 }
 
 /// None means an existing instance was successfully told to show its window.
-pub fn acquire() -> Result<Option<Instance>, Box<dyn Error>> {
+pub fn acquire(show_existing: bool) -> Result<Option<Instance>, Box<dyn Error>> {
     #[cfg(windows)]
     let lock_name = APP_ID.to_string();
     #[cfg(not(windows))]
@@ -42,7 +42,9 @@ pub fn acquire() -> Result<Option<Instance>, Box<dyn Error>> {
         .into_owned();
     let lock = SingleInstance::new(&lock_name)?;
     if !lock.is_single() {
-        activate_existing()?;
+        if show_existing {
+            activate_existing()?;
+        }
         return Ok(None);
     }
     #[cfg(not(windows))]

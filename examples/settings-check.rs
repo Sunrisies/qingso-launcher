@@ -6,6 +6,9 @@ use std::{
     rc::Rc,
     time::Duration,
 };
+#[path = "../src/autostart.rs"]
+#[allow(dead_code)]
+mod autostart;
 #[path = "../src/config.rs"]
 mod config;
 #[path = "../src/hotkeys.rs"]
