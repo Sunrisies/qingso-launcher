@@ -127,8 +127,9 @@ export component AppWindow inherits Window {
         x: 20px; y: 16px; width: 720px; height: 346px;
         border-radius: 16px; background: Theme.surface;
         border-width: 1px; border-color: Theme.border;
-        drop-shadow-blur: 18px; drop-shadow-offset-y: 6px;
-        drop-shadow-color: #273b5a20;
+        drop-shadow-blur: root.is-macos ? 12px : 18px;
+        drop-shadow-offset-y: root.is-macos ? 3px : 6px;
+        drop-shadow-color: root.is-macos ? #273b5a14 : #273b5a20;
         Image { x: 25px; y: 29px; width: 26px; height: 26px; source: @image-url("icons/search.svg"); }
         input := TextInput {
             x: 68px; y: 23px; width: 556px; height: 40px;

@@ -24,12 +24,18 @@ pub fn configure_backend() -> Result<(), slint::PlatformError> {
                 attributes
             }
         });
-    // This launcher is mostly static UI: software avoids initializing GPU
-    // driver contexts. Retain an explicit GPU override for animated workloads.
+    // macOS softbuffer ignores alpha, turning the transparent margins around
+    // the launcher into black pixels. FemtoVG preserves window transparency.
+    // Other platforms keep software rendering to avoid GPU driver overhead.
     if let Ok(renderer) = std::env::var("QINGSO_RENDERER") {
         backend = backend.renderer_name(renderer);
     } else if std::env::var_os("SLINT_BACKEND").is_none() {
-        backend = backend.renderer_name("software".into());
+        let renderer = if cfg!(target_os = "macos") {
+            "femtovg"
+        } else {
+            "software"
+        };
+        backend = backend.renderer_name(renderer.into());
     }
     #[cfg(target_os = "macos")]
     let backend = {
@@ -43,6 +49,13 @@ pub fn configure_backend() -> Result<(), slint::PlatformError> {
 }
 
 pub fn bind_window(ui: &AppWindow) {
+    #[cfg(target_os = "macos")]
+    ui.window().with_winit_window(|native| {
+        use winit::platform::macos::WindowExtMacOS;
+        // The rounded panel draws its own shadow inside transparent margins.
+        // Avoid adding a second native shadow around the outer window.
+        native.set_has_shadow(false);
+    });
     let weak = ui.as_weak();
     ui.on_close_requested(move || {
         if let Some(ui) = weak.upgrade() {

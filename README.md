@@ -80,7 +80,7 @@ cargo build --release
 
 ## 内存与渲染
 
-默认选择 Slint 软件渲染，避免为简单启动器初始化 GPU 驱动上下文。本机同一发布程序启动 3 秒后的对照测量：FemtoVG 工作集 267.69 MiB、私有提交内存 210.75 MiB；软件渲染工作集 72.46 MiB、私有提交内存 38.95 MiB。不同机器、窗口状态和使用时间会改变这些数字，工作集与私有提交内存也不是同一口径。
+Windows 默认选择 Slint 软件渲染，避免为简单启动器初始化 GPU 驱动上下文。macOS 默认使用 FemtoVG GPU 渲染，因为软件显示后端忽略透明通道，会把无边框搜索窗口四周的透明区域显示为黑色。Windows 上同一发布程序启动 3 秒后的对照测量：FemtoVG 工作集 267.69 MiB、私有提交内存 210.75 MiB；软件渲染工作集 72.46 MiB、私有提交内存 38.95 MiB。不同机器、窗口状态和使用时间会改变这些数字，工作集与私有提交内存也不是同一口径。
 
 GPU 渲染仍可显式启用，适合未来更复杂的动画界面：
 
@@ -89,7 +89,7 @@ $env:QINGSO_RENDERER = 'femtovg'
 cargo run --release
 ```
 
-也尊重 Slint 原生 `SLINT_BACKEND` 渲染配置，例如 `winit-software` 和 `winit-femtovg`；`QINGSO_RENDERER` 优先。当前没有移除 GPU 后端和无障碍功能。
+也尊重 Slint 原生 `SLINT_BACKEND` 渲染配置，例如 `winit-software` 和 `winit-femtovg`；`QINGSO_RENDERER` 优先。在 macOS 上显式选择软件渲染仍会出现透明区域黑色的问题。当前没有移除 GPU 后端和无障碍功能。
 
 ## 搜索标签
 
